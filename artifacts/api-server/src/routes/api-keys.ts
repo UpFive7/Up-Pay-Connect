@@ -1,0 +1,83 @@
+import { Router } from "express";
+import { db } from "@workspace/db";
+import { apiKeysTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { createHash, randomBytes } from "crypto";
+
+const router = Router();
+
+function generateApiKey(environment: string): { key: string; hash: string; prefix: string } {
+  const prefix = environment === "production" ? "sk_live" : "sk_test";
+  const secret = randomBytes(24).toString("hex");
+  const key = `${prefix}_${secret}`;
+  const hash = createHash("sha256").update(key).digest("hex");
+  return { key, hash, prefix: `${prefix}_${secret.slice(0, 8)}` };
+}
+
+function mapKey(k: typeof apiKeysTable.$inferSelect, includeSecret?: boolean, secretKey?: string) {
+  const base = {
+    id: k.id,
+    system_id: k.systemId,
+    name: k.name,
+    key_prefix: k.keyPrefix,
+    environment: k.environment,
+    status: k.status,
+    permissions: k.permissions,
+    last_used_at: k.lastUsedAt?.toISOString() ?? null,
+    created_at: k.createdAt.toISOString(),
+  };
+  if (includeSecret && secretKey) {
+    return { ...base, key: secretKey };
+  }
+  return base;
+}
+
+router.get("/", async (req, res): Promise<void> => {
+  try {
+    const { system_id } = req.query as Record<string, string>;
+    const where = system_id ? eq(apiKeysTable.systemId, system_id) : undefined;
+    const rows = await db.select().from(apiKeysTable).where(where).orderBy(sql`${apiKeysTable.createdAt} desc`);
+    res.json(rows.map((k) => mapKey(k)));
+  } catch (err) {
+    req.log.error({ err }, "Error listing API keys");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/", async (req, res): Promise<void> => {
+  try {
+    const { system_id, name, environment, permissions } = req.body;
+    if (!system_id || !name || !environment) {
+      res.status(400).json({ error: "system_id, name and environment are required" });
+      return;
+    }
+
+    const { key, hash, prefix } = generateApiKey(environment);
+    const [apiKey] = await db
+      .insert(apiKeysTable)
+      .values({ systemId: system_id, name, keyHash: hash, keyPrefix: prefix, environment, permissions: permissions || [], status: "active" })
+      .returning();
+
+    res.status(201).json(mapKey(apiKey, true, key));
+  } catch (err) {
+    req.log.error({ err }, "Error creating API key");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/revoke", async (req, res): Promise<void> => {
+  try {
+    const [updated] = await db
+      .update(apiKeysTable)
+      .set({ status: "revoked" })
+      .where(eq(apiKeysTable.id, req.params.id))
+      .returning();
+    if (!updated) { res.status(404).json({ error: "API key not found" }); return; }
+    res.json(mapKey(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error revoking API key");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+export default router;

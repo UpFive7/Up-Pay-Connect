@@ -1,0 +1,1 @@
+- [UpPay Connect architecture](uppay-connect-arch.md) — key decisions: contract-first API, centavo amounts, provider routing rules, mapPayment location

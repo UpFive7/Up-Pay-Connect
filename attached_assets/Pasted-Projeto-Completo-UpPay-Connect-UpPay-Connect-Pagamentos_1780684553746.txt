@@ -1,0 +1,1969 @@
+Projeto Completo — UpPay Connect
+UpPay Connect
+Pagamentos integrados, simples e inteligentes.
+1. Visão geral do projeto
+
+O UpPay Connect será a infraestrutura central de pagamentos da UpFive7, responsável por conectar todos os sistemas internos da empresa a parceiros financeiros como Asaas e PagBank.
+
+O objetivo não é, inicialmente, criar um gateway público para terceiros. O objetivo é criar uma API interna padronizada, onde todos os sistemas da UpFive7 consigam gerar cobranças, consultar pagamentos, receber confirmações, controlar assinaturas, emitir links de pagamento e automatizar status financeiros sem precisar integrar individualmente com cada banco ou provedor.
+
+2. Posicionamento do produto
+Nome
+UpPay Connect
+Slogan
+Pagamentos integrados, simples e inteligentes.
+Descrição curta
+A infraestrutura de pagamentos dos sistemas UpFive7.
+Descrição completa
+O UpPay Connect centraliza os pagamentos dos sistemas da UpFive7 em uma única API, conectando agendamentos, CRMs, automações, cobranças e plataformas digitais ao Asaas e PagBank de forma simples, segura e inteligente.
+3. Objetivo principal
+
+Criar um sistema interno que permita aos produtos da UpFive7 gerar e controlar pagamentos de forma padronizada.
+
+O UpPay Connect deve atender inicialmente:
+
+- Sistema de agendamento
+- CRM WhatsApp
+- CRM empresarial
+- Sistemas de assinatura
+- Sistemas de cobrança
+- Plataformas SaaS futuras
+- Automações internas da UpFive7
+4. Parceiros financeiros do MVP
+
+O sistema deve iniciar com dois parceiros:
+
+1. Asaas
+2. PagBank
+Uso recomendado de cada parceiro
+Função	Parceiro principal
+Pix	Asaas
+Boleto	Asaas
+Cobrança recorrente	Asaas
+Mensalidades	Asaas
+Assinaturas	Asaas
+Link de pagamento	PagBank
+Cartão de crédito	PagBank
+Cartão de débito	PagBank
+Checkout	PagBank
+Parcelamento	PagBank
+Split futuro	PagBank / Asaas
+5. Arquitetura geral
+Sistemas UpFive7
+    ↓
+API interna do UpPay Connect
+    ↓
+Motor de pagamentos
+    ↓
+Roteador de provedores
+    ↓
+Asaas / PagBank
+    ↓
+Webhook do provedor financeiro
+    ↓
+UpPay Connect
+    ↓
+Evento interno para o sistema de origem
+Exemplo prático
+
+Um cliente agenda um serviço pelo sistema de agendamento.
+
+1. Sistema de agendamento cria uma cobrança no UpPay Connect
+2. UpPay Connect gera Pix, boleto ou link de pagamento
+3. Cliente recebe a cobrança
+4. Cliente realiza o pagamento
+5. Asaas ou PagBank confirma o pagamento
+6. UpPay Connect recebe o webhook
+7. UpPay Connect atualiza a transação
+8. Sistema de agendamento é avisado
+9. Agendamento é confirmado automaticamente
+6. Identidade visual do projeto
+Paleta oficial UpFive7 / UpPay Connect
+Laranja
+Azul
+Branco
+#101010
+Sugestão de uso da paleta
+Cor principal
+Laranja
+
+Uso:
+
+- Botões principais
+- CTAs
+- Destaques
+- Indicadores positivos
+- Elementos de ação
+Cor secundária
+Azul
+
+Uso:
+
+- Menus
+- Cabeçalhos
+- Links
+- Gráficos
+- Estados informativos
+Cor base clara
+Branco
+
+Uso:
+
+- Fundo principal
+- Cards
+- Áreas de leitura
+- Tabelas
+- Formulários
+Cor escura
+#101010
+
+Uso:
+
+- Texto principal
+- Fundo dark
+- Sidebar
+- Rodapé
+- Contraste premium
+7. Direção visual do sistema
+Estilo
+- Moderno
+- Limpo
+- Tecnológico
+- Profissional
+- SaaS premium
+- Dashboard financeiro
+- Interface clara e objetiva
+Sensação desejada
+- Confiança
+- Segurança
+- Controle
+- Integração
+- Tecnologia
+- Automação
+Referência visual
+
+O painel deve parecer uma plataforma profissional de pagamentos, com:
+
+- Dashboard limpo
+- Cards financeiros
+- Gráficos simples
+- Tabelas bem organizadas
+- Status visuais
+- Botões com boa hierarquia
+- Layout responsivo
+- Boa leitura em desktop e mobile
+8. Stack técnica recomendada
+Backend
+Node.js
+NestJS
+TypeScript
+Banco de dados
+PostgreSQL
+ORM
+Prisma ORM
+Cache e filas
+Redis
+BullMQ
+Frontend administrativo
+Next.js
+React
+Tailwind CSS
+Shadcn UI
+Documentação
+Swagger / OpenAPI
+Infraestrutura
+Docker
+Docker Compose
+VPS ou Cloud
+Ambiente sandbox
+Ambiente produção
+Monitoramento
+Sentry
+Logs estruturados
+Alertas de falha
+Dashboard de saúde do sistema
+9. Módulos principais
+
+O sistema deve ser dividido nos seguintes módulos:
+
+1. Autenticação
+2. Usuários internos
+3. Sistemas integrados
+4. Clientes finais
+5. API Keys internas
+6. Pagamentos
+7. Pix
+8. Boleto
+9. Cartão
+10. Links de pagamento
+11. Assinaturas
+12. Provedores financeiros
+13. Adapter Asaas
+14. Adapter PagBank
+15. Roteamento de pagamentos
+16. Webhooks recebidos
+17. Webhooks/eventos internos
+18. Taxas
+19. Conciliação
+20. Relatórios
+21. Logs de auditoria
+22. Painel administrativo
+10. Sistemas integrados
+
+Como o UpPay Connect será usado pelos sistemas internos da UpFive7, cada sistema deve ser cadastrado na plataforma.
+
+Exemplos de sistemas
+- UpSchedule
+- CRM WhatsApp
+- CRM Empresarial
+- Sistema Financeiro
+- Sistema Pastoral
+- Plataforma de Assinaturas
+- Futuros SaaS da UpFive7
+Tabela: integrated_systems
+
+Campos:
+
+id
+name
+slug
+description
+status
+api_key_id
+default_webhook_url
+allowed_ips
+created_at
+updated_at
+Status possíveis
+active
+inactive
+blocked
+testing
+11. Autenticação dos sistemas internos
+
+Cada sistema interno deve se autenticar na API do UpPay Connect usando uma API Key.
+
+Exemplo de header
+Authorization: Bearer sk_live_xxxxxxxxxxxxxxxxx
+
+Ou, no ambiente de testes:
+
+Authorization: Bearer sk_test_xxxxxxxxxxxxxxxxx
+Tipos de chave
+sk_test_ = ambiente sandbox
+sk_live_ = ambiente produção
+Permissões da chave
+payments:create
+payments:read
+payments:cancel
+payments:refund
+customers:create
+customers:read
+subscriptions:create
+subscriptions:read
+webhooks:send
+reports:read
+Segurança das API Keys
+- Nunca salvar a chave pura no banco
+- Salvar apenas hash da chave
+- Permitir revogação
+- Permitir rotação
+- Registrar último uso
+- Aplicar rate limit
+- Permitir restrição por IP
+12. Clientes finais
+
+O UpPay Connect deve permitir cadastrar clientes finais que serão cobrados pelos sistemas internos.
+
+Exemplos
+- Cliente que agenda um serviço
+- Lead do CRM WhatsApp
+- Cliente de contrato mensal
+- Empresa cadastrada no CRM
+- Assinante de um SaaS
+Tabela: customers
+
+Campos:
+
+id
+name
+email
+phone
+document
+document_type
+address_street
+address_number
+address_district
+address_city
+address_state
+address_zip_code
+asaas_customer_id
+pagbank_customer_id
+created_by_system_id
+created_at
+updated_at
+Endpoint para criar cliente
+POST /v1/customers
+Payload
+{
+  "name": "João Silva",
+  "email": "joao@email.com",
+  "document": "12345678900",
+  "phone": "11999999999",
+  "address": {
+    "street": "Rua Exemplo",
+    "number": "123",
+    "district": "Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "zip_code": "01000000"
+  }
+}
+13. Módulo de pagamentos
+
+Este é o núcleo do UpPay Connect.
+
+Métodos de pagamento suportados no MVP
+pix
+boleto
+credit_card
+debit_card
+payment_link
+checkout
+Métodos futuros
+split
+subscription
+wallet
+bank_transfer
+14. Criar pagamento
+Endpoint
+POST /v1/payments
+Header obrigatório
+Authorization: Bearer sk_live_xxxxxxxxxxxxxxxxx
+Idempotency-Key: pedido-1024
+Payload padrão
+{
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "pix",
+  "description": "Agendamento #1024",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "document": "12345678900",
+    "phone": "11999999999"
+  },
+  "external_reference": "agenda_1024",
+  "source_system": "up_schedule",
+  "callback_url": "https://agenda.upfive7.com/webhooks/payments",
+  "expires_in": 3600
+}
+Regras importantes
+- amount sempre em centavos
+- currency padrão: BRL
+- source_system identifica qual sistema criou a cobrança
+- external_reference identifica a cobrança no sistema de origem
+- callback_url é a URL para avisar o sistema de origem
+- Idempotency-Key evita cobranças duplicadas
+15. Resposta para Pix
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "asaas",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "pix",
+  "external_reference": "agenda_1024",
+  "source_system": "up_schedule",
+  "pix": {
+    "copy_paste": "000201...",
+    "qr_code_base64": "data:image/png;base64,..."
+  },
+  "expires_at": "2026-06-05T23:59:59Z",
+  "created_at": "2026-06-05T10:30:00Z"
+}
+16. Resposta para boleto
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "asaas",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "boleto",
+  "external_reference": "crm_1024",
+  "source_system": "company_crm",
+  "boleto": {
+    "url": "https://...",
+    "barcode": "34191...",
+    "digitable_line": "34191.79001..."
+  },
+  "due_date": "2026-06-10",
+  "created_at": "2026-06-05T10:30:00Z"
+}
+17. Resposta para link de pagamento
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "pagbank",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "payment_link",
+  "external_reference": "whatsapp_1024",
+  "source_system": "whatsapp_crm",
+  "payment_link": {
+    "url": "https://pagamento.exemplo.com/pay_123456"
+  },
+  "created_at": "2026-06-05T10:30:00Z"
+}
+18. Status internos do pagamento
+
+O UpPay Connect deve padronizar todos os status, independentemente do provedor usado.
+
+pending
+processing
+authorized
+paid
+refused
+failed
+expired
+cancelled
+refunded
+partially_refunded
+chargeback
+under_review
+Benefício
+
+O sistema de agendamento, CRM WhatsApp ou CRM empresarial nunca precisa saber se o status veio do Asaas ou PagBank.
+
+Ele recebe sempre o mesmo padrão.
+
+19. Roteamento de pagamento
+
+Criar o serviço:
+
+PaymentRouterService
+
+Esse serviço decide qual parceiro processará a cobrança.
+
+Regras iniciais
+Se payment_method = pix:
+usar Asaas
+
+Se payment_method = boleto:
+usar Asaas
+
+Se payment_method = subscription:
+usar Asaas
+
+Se payment_method = credit_card:
+usar PagBank
+
+Se payment_method = debit_card:
+usar PagBank
+
+Se payment_method = payment_link:
+usar PagBank
+
+Se payment_method = checkout:
+usar PagBank
+Regras futuras
+- Escolher provedor por menor taxa
+- Escolher provedor por disponibilidade
+- Escolher provedor por sistema de origem
+- Escolher provedor por valor da cobrança
+- Escolher provedor por tipo de cliente
+- Aplicar fallback automático
+20. Provedores financeiros
+
+O UpPay Connect deve usar arquitetura de adapters.
+
+Estrutura sugerida
+src/modules/providers
+  /asaas
+    asaas.module.ts
+    asaas.service.ts
+    asaas-webhook.controller.ts
+    asaas.mapper.ts
+    asaas.types.ts
+
+  /pagbank
+    pagbank.module.ts
+    pagbank.service.ts
+    pagbank-webhook.controller.ts
+    pagbank.mapper.ts
+    pagbank.types.ts
+
+  provider.interface.ts
+  provider-router.service.ts
+Interface padrão
+export interface PaymentProvider {
+  createPayment(data: CreatePaymentDTO): Promise<ProviderPaymentResponse>;
+  getPayment(providerPaymentId: string): Promise<ProviderPaymentResponse>;
+  cancelPayment(providerPaymentId: string): Promise<void>;
+  refundPayment(providerPaymentId: string, amount?: number): Promise<void>;
+}
+21. Adapter Asaas
+Responsabilidades
+- Criar cliente
+- Criar cobrança Pix
+- Criar boleto
+- Criar cobrança recorrente
+- Consultar pagamento
+- Cancelar cobrança
+- Estornar cobrança, se disponível
+- Receber webhook
+- Converter status do Asaas para status interno
+- Salvar payload original
+Uso principal
+- Pix
+- Boleto
+- Recorrência
+- Mensalidade
+- Assinaturas
+22. Adapter PagBank
+Responsabilidades
+- Criar pagamento com cartão
+- Criar link de pagamento
+- Criar checkout
+- Criar pedido
+- Criar pagamento parcelado
+- Criar split futuro
+- Consultar pagamento
+- Cancelar pagamento
+- Estornar pagamento
+- Receber webhook
+- Converter status do PagBank para status interno
+- Salvar payload original
+Uso principal
+- Cartão
+- Link de pagamento
+- Checkout
+- Parcelamento
+- Marketplace futuro
+23. Webhooks recebidos dos provedores
+
+O sistema deve receber webhooks do Asaas e PagBank.
+
+Endpoints internos
+POST /webhooks/asaas
+POST /webhooks/pagbank
+Fluxo
+1. Provedor envia webhook
+2. UpPay Connect recebe
+3. Valida autenticidade
+4. Salva payload original
+5. Identifica o pagamento
+6. Atualiza status interno
+7. Registra evento
+8. Dispara evento para o sistema de origem
+24. Eventos enviados aos sistemas internos
+
+Cada sistema da UpFive7 deve receber eventos padronizados.
+
+Exemplo
+POST https://agenda.upfive7.com/webhooks/payments
+Payload
+{
+  "event": "payment.paid",
+  "payment": {
+    "id": "pay_123456",
+    "status": "paid",
+    "provider": "asaas",
+    "amount": 15000,
+    "net_amount": 14650,
+    "payment_method": "pix",
+    "external_reference": "agenda_1024",
+    "source_system": "up_schedule",
+    "paid_at": "2026-06-05T14:30:00Z"
+  }
+}
+Eventos possíveis
+payment.created
+payment.pending
+payment.processing
+payment.authorized
+payment.paid
+payment.failed
+payment.refused
+payment.expired
+payment.cancelled
+payment.refunded
+payment.chargeback
+subscription.created
+subscription.paid
+subscription.cancelled
+25. Segurança dos eventos internos
+
+Todos os eventos enviados para os sistemas internos devem ter assinatura.
+
+Headers
+x-uppay-signature: sha256=xxxxxxxx
+x-uppay-event: payment.paid
+x-uppay-delivery: whd_123456
+x-uppay-timestamp: 1717600000
+Segurança obrigatória
+- Assinatura HMAC SHA256
+- Proteção contra replay attack
+- Registro de entrega
+- Reenvio automático em caso de falha
+- Log de resposta do sistema de destino
+26. Retentativas de webhook
+
+Se o sistema de destino estiver fora do ar, o UpPay Connect deve tentar reenviar.
+
+Política de retentativa
+1ª tentativa: imediata
+2ª tentativa: após 1 minuto
+3ª tentativa: após 5 minutos
+4ª tentativa: após 15 minutos
+5ª tentativa: após 1 hora
+6ª tentativa: após 6 horas
+7ª tentativa: após 24 horas
+Registrar em cada entrega
+- URL
+- Payload
+- Status HTTP
+- Resposta recebida
+- Quantidade de tentativas
+- Próxima tentativa
+- Status da entrega
+27. Assinaturas e recorrência
+
+O módulo de assinaturas será usado principalmente para:
+
+- Sistemas SaaS da UpFive7
+- Planos mensais
+- Clientes recorrentes
+- Contratos de CRM
+- Mensalidades de serviços
+Provedor principal
+Asaas
+Endpoint
+POST /v1/subscriptions
+Payload
+{
+  "customer_id": "cus_123456",
+  "amount": 9700,
+  "payment_method": "pix",
+  "billing_cycle": "monthly",
+  "description": "Plano mensal CRM WhatsApp",
+  "source_system": "whatsapp_crm",
+  "external_reference": "plan_1024",
+  "next_due_date": "2026-07-05"
+}
+Periodicidades
+weekly
+monthly
+quarterly
+semiannual
+yearly
+Status da assinatura
+active
+pending
+past_due
+cancelled
+paused
+expired
+28. Aplicação no sistema de agendamento
+
+O sistema de agendamento poderá usar o UpPay Connect para:
+
+- Cobrar sinal
+- Cobrar consulta
+- Cobrar serviço
+- Confirmar horário após pagamento
+- Cancelar cobrança se o agendamento for cancelado
+- Enviar Pix pelo WhatsApp
+- Enviar link de pagamento
+- Gerar recibo
+Fluxo ideal
+Agendamento criado
+↓
+Cobrança gerada
+↓
+Cliente paga
+↓
+Pagamento aprovado
+↓
+Agendamento confirmado
+↓
+Mensagem automática enviada
+Eventos usados
+payment.created
+payment.paid
+payment.expired
+payment.cancelled
+payment.refunded
+29. Aplicação no CRM WhatsApp
+
+O CRM WhatsApp poderá usar o UpPay Connect para:
+
+- Gerar cobrança dentro da conversa
+- Enviar Pix copia e cola
+- Enviar QR Code
+- Enviar link de pagamento
+- Confirmar pagamento automaticamente
+- Mudar etapa do funil
+- Ativar automações pós-pagamento
+Exemplo de funil
+Lead interessado
+↓
+Proposta enviada
+↓
+Cobrança gerada
+↓
+Pagamento pendente
+↓
+Pagamento aprovado
+↓
+Cliente ativo
+30. Aplicação no CRM empresarial
+
+O CRM empresarial poderá usar o UpPay Connect para:
+
+- Cobrar propostas aprovadas
+- Controlar contratos mensais
+- Ver inadimplência
+- Gerar cobrança avulsa
+- Consultar histórico financeiro do cliente
+- Identificar clientes pagos
+- Gerar relatórios de recebimento
+31. Módulo de taxas
+
+Mesmo sendo uso interno, o sistema deve calcular taxas para controle financeiro.
+
+Deve registrar
+- Valor bruto
+- Taxa do provedor
+- Taxa interna da plataforma, se houver
+- Valor líquido
+- Data estimada de recebimento
+- Provedor usado
+Tabela: provider_fees
+id
+provider
+payment_method
+fee_type
+fixed_amount
+percentage_rate
+settlement_days
+active
+created_at
+updated_at
+Tipos de taxa
+fixed
+percentage
+mixed
+32. Conciliação
+
+O sistema deve ter uma área de conciliação para comparar o que foi criado no UpPay Connect com o que foi confirmado no Asaas ou PagBank.
+
+Funcionalidades
+- Listar pagamentos por período
+- Filtrar por sistema de origem
+- Filtrar por provedor
+- Filtrar por status
+- Identificar pagamentos divergentes
+- Reconsultar status no provedor
+- Reenviar webhook para o sistema interno
+- Exportar relatório
+33. Relatórios
+
+O painel deve exibir relatórios como:
+
+- Total processado
+- Total recebido
+- Total pendente
+- Total falhado
+- Receita por sistema
+- Receita por método de pagamento
+- Receita por provedor
+- Taxas pagas aos provedores
+- Valor líquido recebido
+- Pagamentos por dia
+- Pagamentos por mês
+- Inadimplência
+- Assinaturas ativas
+- Assinaturas vencidas
+34. Logs de auditoria
+
+Registrar todas as ações importantes.
+
+Eventos auditáveis
+- Login no painel
+- Criação de pagamento
+- Cancelamento de pagamento
+- Estorno
+- Alteração de taxa
+- Alteração de provedor
+- Criação de API Key
+- Revogação de API Key
+- Reenvio de webhook
+- Alteração de configuração
+Tabela: audit_logs
+id
+user_id
+source_system_id
+action
+entity
+entity_id
+old_value
+new_value
+ip_address
+user_agent
+created_at
+35. Painel administrativo
+
+O UpPay Connect deve ter um painel administrativo interno.
+
+Páginas principais
+1. Dashboard
+2. Pagamentos
+3. Clientes
+4. Assinaturas
+5. Sistemas integrados
+6. Provedores
+7. Webhooks
+8. Taxas
+9. Conciliação
+10. Relatórios
+11. API Keys
+12. Logs
+13. Configurações
+36. Dashboard
+
+O dashboard deve exibir:
+
+- Total processado hoje
+- Total recebido hoje
+- Total pendente
+- Total falhado
+- Total processado no mês
+- Taxas pagas
+- Valor líquido
+- Pagamentos por método
+- Pagamentos por provedor
+- Pagamentos por sistema de origem
+- Últimas transações
+- Webhooks com erro
+37. Tela de pagamentos
+
+Deve permitir:
+
+- Listar pagamentos
+- Filtrar por status
+- Filtrar por sistema de origem
+- Filtrar por provedor
+- Filtrar por método
+- Abrir detalhes do pagamento
+- Ver payload original do provedor
+- Ver histórico de eventos
+- Consultar status no provedor
+- Reenviar webhook
+- Cancelar pagamento
+- Estornar pagamento
+38. Tela de sistemas integrados
+
+Deve permitir cadastrar e gerenciar os sistemas internos da UpFive7.
+
+Campos
+Nome do sistema
+Slug
+Descrição
+URL padrão de webhook
+Status
+Chaves de API
+Permissões
+IP permitido
+Ambiente
+39. Tela de provedores
+
+Deve permitir configurar:
+
+- Asaas sandbox
+- Asaas produção
+- PagBank sandbox
+- PagBank produção
+- Tokens
+- Status do provedor
+- Prioridade
+- Métodos suportados
+40. Tela de webhooks
+
+Deve permitir:
+
+- Ver webhooks recebidos dos provedores
+- Ver eventos enviados aos sistemas internos
+- Ver falhas
+- Reenviar evento
+- Testar endpoint
+- Ver resposta HTTP
+- Ver payload enviado
+41. Banco de dados
+Tabelas principais
+users
+integrated_systems
+api_keys
+customers
+payments
+payment_events
+payment_attempts
+provider_accounts
+provider_fees
+webhook_endpoints
+webhook_deliveries
+subscriptions
+refunds
+settlements
+audit_logs
+42. Tabela payments
+
+Campos principais:
+
+id
+source_system_id
+customer_id
+provider
+provider_payment_id
+provider_status
+gateway_status
+external_reference
+amount
+gross_amount
+provider_fee
+platform_fee
+net_amount
+currency
+payment_method
+description
+installments
+qr_code
+qr_code_base64
+copy_paste
+boleto_url
+boleto_barcode
+boleto_digitable_line
+payment_link_url
+checkout_url
+expires_at
+due_date
+paid_at
+cancelled_at
+refunded_at
+created_at
+updated_at
+43. Tabela payment_events
+id
+payment_id
+event
+old_status
+new_status
+provider
+payload
+created_at
+44. Tabela webhook_deliveries
+id
+payment_id
+source_system_id
+event
+url
+payload
+headers
+http_status
+response_body
+attempts
+next_retry_at
+status
+created_at
+updated_at
+Status
+pending
+success
+failed
+retrying
+cancelled
+45. Segurança geral
+
+Requisitos obrigatórios:
+
+- HTTPS obrigatório
+- API Keys criptografadas com hash
+- Nunca salvar dados sensíveis de cartão
+- Usar tokenização do PagBank para cartão
+- Variáveis sensíveis apenas em .env
+- Rate limit por sistema
+- Rate limit por IP
+- Logs de auditoria
+- Idempotency-Key obrigatória para criação de pagamento
+- Proteção contra replay attack
+- Assinatura HMAC em eventos internos
+- Backup automático
+- Separação entre sandbox e produção
+- Permissões por usuário
+- Permissões por sistema integrado
+46. Variáveis de ambiente
+DATABASE_URL=
+REDIS_URL=
+
+JWT_SECRET=
+API_KEY_SECRET=
+WEBHOOK_SECRET=
+
+ASAAS_API_KEY_SANDBOX=
+ASAAS_API_KEY_PRODUCTION=
+
+PAGBANK_TOKEN_SANDBOX=
+PAGBANK_TOKEN_PRODUCTION=
+
+APP_ENV=
+APP_URL=
+PANEL_URL=
+47. Workers
+
+Criar workers para tarefas assíncronas.
+
+Workers necessários
+WebhookDeliveryWorker
+PaymentReconciliationWorker
+ProviderStatusSyncWorker
+SubscriptionSyncWorker
+Responsabilidades
+WebhookDeliveryWorker
+- Enviar eventos para sistemas internos
+- Fazer retentativas
+- Registrar falhas
+PaymentReconciliationWorker
+- Conferir pagamentos pendentes
+- Comparar com status do provedor
+- Corrigir divergências
+ProviderStatusSyncWorker
+- Consultar status no Asaas/PagBank
+- Atualizar pagamentos antigos
+- Reprocessar eventos
+SubscriptionSyncWorker
+- Conferir assinaturas
+- Atualizar status
+- Criar eventos de recorrência
+48. Documentação interna da API
+
+Mesmo sendo uma API interna, deve ter documentação clara.
+
+Criar documentação com Swagger
+
+A documentação deve incluir:
+
+- Autenticação
+- Criação de cliente
+- Criação de pagamento
+- Consulta de pagamento
+- Cancelamento
+- Estorno
+- Assinaturas
+- Webhooks
+- Lista de status
+- Lista de eventos
+- Exemplos de payload
+- Exemplos de resposta
+- Códigos de erro
+49. Formato padrão de erro
+{
+  "error": {
+    "code": "payment_not_found",
+    "message": "Pagamento não encontrado.",
+    "details": []
+  }
+}
+Códigos de erro
+invalid_api_key
+unauthorized
+forbidden
+validation_error
+payment_not_found
+customer_not_found
+provider_error
+provider_unavailable
+duplicate_idempotency_key
+webhook_delivery_failed
+refund_not_allowed
+payment_already_paid
+payment_expired
+50. Testes obrigatórios
+
+Criar testes para:
+
+- Autenticação por API Key
+- Criação de cliente
+- Criação de Pix
+- Criação de boleto
+- Criação de link de pagamento
+- Criação de pagamento com cartão
+- Idempotência
+- Roteamento de provedor
+- Cálculo de taxas
+- Recebimento de webhook Asaas
+- Recebimento de webhook PagBank
+- Atualização de status
+- Envio de evento interno
+- Retentativas de webhook
+- Consulta de pagamento
+- Cancelamento
+- Estorno
+51. Docker
+
+Criar docker-compose com:
+
+- API NestJS
+- PostgreSQL
+- Redis
+- Painel Next.js
+- Worker de filas
+52. Estrutura sugerida do backend
+src
+  /common
+    /guards
+    /decorators
+    /filters
+    /interceptors
+    /utils
+
+  /modules
+    /auth
+    /users
+    /integrated-systems
+    /api-keys
+    /customers
+    /payments
+    /subscriptions
+    /webhooks
+    /providers
+      /asaas
+      /pagbank
+    /fees
+    /routing
+    /reports
+    /audit-logs
+
+  /workers
+    webhook-delivery.worker.ts
+    payment-reconciliation.worker.ts
+    provider-status-sync.worker.ts
+    subscription-sync.worker.ts
+
+  main.ts
+53. Estrutura sugerida do frontend
+app
+  /dashboard
+  /payments
+  /customers
+  /subscriptions
+  /systems
+  /providers
+  /webhooks
+  /fees
+  /reports
+  /audit-logs
+  /settings
+
+components
+  /ui
+  /charts
+  /tables
+  /forms
+  /status-badges
+
+lib
+  api.ts
+  auth.ts
+  utils.ts
+54. Padrão visual do painel
+Layout
+Sidebar escura usando #101010
+Logo UpPay Connect no topo
+Menu lateral com ícones
+Cards brancos
+Botões principais em laranja
+Links e destaques secundários em azul
+Textos principais em #101010
+Fundo geral em branco ou cinza muito claro
+Cards do dashboard
+Card 1: Total recebido
+Card 2: Pagamentos pendentes
+Card 3: Pagamentos aprovados
+Card 4: Webhooks com erro
+Card 5: Receita por sistema
+Card 6: Métodos de pagamento
+Status visuais
+paid = destaque positivo
+pending = destaque de atenção
+failed = destaque de erro
+cancelled = neutro
+refunded = informativo
+55. MVP recomendado
+Fase 1 — Base do UpPay Connect
+- Login administrativo
+- Cadastro de sistemas integrados
+- Geração de API Keys
+- Cadastro de clientes
+- Criação de pagamento Pix via Asaas
+- Criação de boleto via Asaas
+- Recebimento de webhook Asaas
+- Atualização de status
+- Envio de evento para sistema interno
+- Painel básico de pagamentos
+- Logs de eventos
+Fase 2 — PagBank
+- Integração PagBank
+- Link de pagamento
+- Cartão de crédito
+- Cartão de débito
+- Checkout
+- Webhook PagBank
+- Normalização de status
+Fase 3 — Recorrência
+- Assinaturas via Asaas
+- Cobranças mensais
+- Status de inadimplência
+- Eventos de assinatura
+- Relatórios de recorrência
+Fase 4 — Conciliação e relatórios
+- Conciliação automática
+- Reconsulta de status
+- Relatórios financeiros
+- Exportação CSV
+- Dashboard avançado
+Fase 5 — Inteligência de roteamento
+- Roteamento por taxa
+- Fallback automático
+- Escolha por sistema de origem
+- Escolha por valor
+- Multi-provedor futuro
+56. Prompt completo para criar o projeto
+Crie um sistema SaaS interno chamado UpPay Connect.
+
+Slogan:
+Pagamentos integrados, simples e inteligentes.
+
+O UpPay Connect será a infraestrutura central de pagamentos da UpFive7.
+
+O sistema deve centralizar pagamentos dos sistemas próprios da empresa, como sistema de agendamento, CRM WhatsApp, CRM empresarial, sistemas de assinatura e futuros SaaS.
+
+O objetivo não é criar inicialmente um gateway público para terceiros.
+O objetivo é criar uma API interna segura e padronizada para que todos os sistemas da UpFive7 possam criar cobranças, consultar pagamentos, receber confirmações, controlar assinaturas, gerar Pix, boleto, link de pagamento, cartão e eventos financeiros.
+
+A API deve se integrar inicialmente com dois provedores financeiros:
+1. Asaas
+2. PagBank
+
+Uso dos provedores:
+- Asaas para Pix, boleto, mensalidades, assinaturas e recorrência.
+- PagBank para cartão, link de pagamento, checkout, parcelamento e split futuro.
+
+Paleta visual oficial:
+- Laranja
+- Azul
+- Branco
+- #101010
+
+O painel deve ter visual moderno, limpo, tecnológico e profissional.
+Usar #101010 para sidebar, textos fortes e áreas escuras.
+Usar laranja para botões principais, CTAs e destaques.
+Usar azul para links, gráficos, estados informativos e elementos secundários.
+Usar branco para cards, fundos principais, tabelas e formulários.
+
+Stack técnica:
+- Backend em Node.js com NestJS e TypeScript
+- PostgreSQL como banco de dados
+- Prisma ORM
+- Redis para cache e filas
+- BullMQ para jobs assíncronos
+- Next.js, React, Tailwind CSS e Shadcn UI para o painel administrativo
+- Swagger/OpenAPI para documentação interna da API
+- Docker e Docker Compose para ambiente de desenvolvimento
+- Separação entre sandbox e produção
+
+Módulos principais:
+1. Autenticação
+2. Usuários internos
+3. Sistemas integrados
+4. API Keys
+5. Clientes finais
+6. Pagamentos
+7. Pix
+8. Boleto
+9. Cartão
+10. Link de pagamento
+11. Checkout
+12. Assinaturas
+13. Provedores financeiros
+14. Adapter Asaas
+15. Adapter PagBank
+16. Roteamento de pagamento
+17. Webhooks recebidos
+18. Eventos internos enviados
+19. Taxas
+20. Conciliação
+21. Relatórios
+22. Logs de auditoria
+23. Painel administrativo
+
+Criar módulo de sistemas integrados.
+Cada sistema interno da UpFive7 deve ser cadastrado, por exemplo:
+- Sistema de agendamento
+- CRM WhatsApp
+- CRM empresarial
+- Sistemas SaaS futuros
+
+Cada sistema integrado deve ter:
+- ID
+- Nome
+- Slug
+- Descrição
+- Status
+- URL padrão de webhook
+- API Keys
+- Permissões
+- IPs permitidos
+- Ambiente sandbox ou produção
+
+Criar autenticação por API Key.
+As chaves devem seguir o padrão:
+- sk_test_xxxxxxxxx para sandbox
+- sk_live_xxxxxxxxx para produção
+
+A autenticação deve ser feita pelo header:
+Authorization: Bearer sk_live_xxxxxxxxx
+
+As API Keys devem ter permissões:
+- payments:create
+- payments:read
+- payments:cancel
+- payments:refund
+- customers:create
+- customers:read
+- subscriptions:create
+- subscriptions:read
+- webhooks:send
+- reports:read
+
+As chaves nunca devem ser salvas em texto puro.
+Salvar apenas hash da chave.
+Permitir revogação, rotação, último uso, rate limit e bloqueio por IP.
+
+Criar módulo de clientes finais.
+Campos do cliente:
+- Nome
+- E-mail
+- Telefone
+- CPF ou CNPJ
+- Tipo de documento
+- Endereço
+- ID do cliente no Asaas
+- ID do cliente no PagBank
+- Sistema de origem
+- Data de criação
+- Data de atualização
+
+Criar endpoint:
+POST /v1/customers
+
+Payload:
+{
+  "name": "João Silva",
+  "email": "joao@email.com",
+  "document": "12345678900",
+  "phone": "11999999999",
+  "address": {
+    "street": "Rua Exemplo",
+    "number": "123",
+    "district": "Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "zip_code": "01000000"
+  }
+}
+
+Criar módulo de pagamentos.
+
+Endpoint principal:
+POST /v1/payments
+
+Headers:
+Authorization: Bearer sk_live_xxxxxxxxx
+Idempotency-Key: pedido-1024
+
+Payload:
+{
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "pix",
+  "description": "Agendamento #1024",
+  "customer": {
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "document": "12345678900",
+    "phone": "11999999999"
+  },
+  "external_reference": "agenda_1024",
+  "source_system": "up_schedule",
+  "callback_url": "https://agenda.upfive7.com/webhooks/payments",
+  "expires_in": 3600
+}
+
+Regras:
+- amount deve ser enviado em centavos
+- currency padrão deve ser BRL
+- source_system identifica qual sistema criou a cobrança
+- external_reference identifica o pagamento no sistema de origem
+- callback_url define para onde o UpPay Connect enviará os eventos
+- Idempotency-Key evita cobrança duplicada
+
+Status internos:
+- pending
+- processing
+- authorized
+- paid
+- refused
+- failed
+- expired
+- cancelled
+- refunded
+- partially_refunded
+- chargeback
+- under_review
+
+Resposta para Pix:
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "asaas",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "pix",
+  "external_reference": "agenda_1024",
+  "source_system": "up_schedule",
+  "pix": {
+    "copy_paste": "000201...",
+    "qr_code_base64": "data:image/png;base64,..."
+  },
+  "expires_at": "2026-06-05T23:59:59Z",
+  "created_at": "2026-06-05T10:30:00Z"
+}
+
+Resposta para boleto:
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "asaas",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "boleto",
+  "external_reference": "crm_1024",
+  "source_system": "company_crm",
+  "boleto": {
+    "url": "https://...",
+    "barcode": "34191...",
+    "digitable_line": "34191.79001..."
+  },
+  "due_date": "2026-06-10",
+  "created_at": "2026-06-05T10:30:00Z"
+}
+
+Resposta para link de pagamento:
+{
+  "id": "pay_123456",
+  "status": "pending",
+  "provider": "pagbank",
+  "amount": 15000,
+  "currency": "BRL",
+  "payment_method": "payment_link",
+  "external_reference": "whatsapp_1024",
+  "source_system": "whatsapp_crm",
+  "payment_link": {
+    "url": "https://pagamento.exemplo.com/pay_123456"
+  },
+  "created_at": "2026-06-05T10:30:00Z"
+}
+
+Criar endpoints:
+POST /v1/payments
+GET /v1/payments
+GET /v1/payments/:id
+POST /v1/payments/:id/cancel
+POST /v1/payments/:id/refund
+GET /v1/payments/:id/events
+
+Criar serviço PaymentRouterService.
+
+Regras iniciais de roteamento:
+- Pix usa Asaas
+- Boleto usa Asaas
+- Assinatura usa Asaas
+- Cartão de crédito usa PagBank
+- Cartão de débito usa PagBank
+- Link de pagamento usa PagBank
+- Checkout usa PagBank
+
+Criar arquitetura de providers com adapters.
+
+Estrutura:
+src/modules/providers
+  /asaas
+    asaas.module.ts
+    asaas.service.ts
+    asaas-webhook.controller.ts
+    asaas.mapper.ts
+    asaas.types.ts
+
+  /pagbank
+    pagbank.module.ts
+    pagbank.service.ts
+    pagbank-webhook.controller.ts
+    pagbank.mapper.ts
+    pagbank.types.ts
+
+  provider.interface.ts
+  provider-router.service.ts
+
+Interface padrão:
+interface PaymentProvider {
+  createPayment(data: CreatePaymentDTO): Promise<ProviderPaymentResponse>;
+  getPayment(providerPaymentId: string): Promise<ProviderPaymentResponse>;
+  cancelPayment(providerPaymentId: string): Promise<void>;
+  refundPayment(providerPaymentId: string, amount?: number): Promise<void>;
+}
+
+Adapter Asaas deve implementar:
+- Criar cliente
+- Criar cobrança Pix
+- Criar boleto
+- Criar cobrança recorrente
+- Consultar pagamento
+- Cancelar cobrança
+- Estornar, se disponível
+- Receber webhook do Asaas
+- Converter status do Asaas para status interno
+- Salvar payload original
+
+Adapter PagBank deve implementar:
+- Criar pagamento com cartão
+- Criar link de pagamento
+- Criar checkout
+- Criar pedido
+- Criar parcelamento
+- Criar split futuramente
+- Consultar pagamento
+- Cancelar pagamento
+- Estornar pagamento
+- Receber webhook do PagBank
+- Converter status do PagBank para status interno
+- Salvar payload original
+
+Criar endpoints para receber webhooks:
+POST /webhooks/asaas
+POST /webhooks/pagbank
+
+Fluxo de webhook:
+1. Provedor envia webhook
+2. UpPay Connect valida
+3. Salva payload original
+4. Identifica pagamento interno
+5. Atualiza status
+6. Registra evento
+7. Envia evento para o sistema de origem
+
+Payload enviado ao sistema interno:
+{
+  "event": "payment.paid",
+  "payment": {
+    "id": "pay_123456",
+    "status": "paid",
+    "provider": "asaas",
+    "amount": 15000,
+    "net_amount": 14650,
+    "payment_method": "pix",
+    "external_reference": "agenda_1024",
+    "source_system": "up_schedule",
+    "paid_at": "2026-06-05T14:30:00Z"
+  }
+}
+
+Eventos possíveis:
+- payment.created
+- payment.pending
+- payment.processing
+- payment.authorized
+- payment.paid
+- payment.failed
+- payment.refused
+- payment.expired
+- payment.cancelled
+- payment.refunded
+- payment.chargeback
+- subscription.created
+- subscription.paid
+- subscription.cancelled
+
+Todos os eventos internos devem ter assinatura HMAC SHA256.
+
+Headers:
+x-uppay-signature: sha256=xxxxxxxx
+x-uppay-event: payment.paid
+x-uppay-delivery: whd_123456
+x-uppay-timestamp: 1717600000
+
+Criar sistema de retentativas:
+- 1ª tentativa imediata
+- 2ª após 1 minuto
+- 3ª após 5 minutos
+- 4ª após 15 minutos
+- 5ª após 1 hora
+- 6ª após 6 horas
+- 7ª após 24 horas
+
+Criar módulo de assinaturas.
+As assinaturas devem ser processadas preferencialmente pelo Asaas.
+
+Endpoint:
+POST /v1/subscriptions
+
+Payload:
+{
+  "customer_id": "cus_123456",
+  "amount": 9700,
+  "payment_method": "pix",
+  "billing_cycle": "monthly",
+  "description": "Plano mensal CRM WhatsApp",
+  "source_system": "whatsapp_crm",
+  "external_reference": "plan_1024",
+  "next_due_date": "2026-07-05"
+}
+
+Periodicidades:
+- weekly
+- monthly
+- quarterly
+- semiannual
+- yearly
+
+Status da assinatura:
+- active
+- pending
+- past_due
+- cancelled
+- paused
+- expired
+
+Criar módulo de taxas.
+Registrar:
+- Valor bruto
+- Taxa do provedor
+- Taxa interna, se houver
+- Valor líquido
+- Data estimada de recebimento
+- Provedor usado
+
+Criar tabela provider_fees:
+- id
+- provider
+- payment_method
+- fee_type
+- fixed_amount
+- percentage_rate
+- settlement_days
+- active
+- created_at
+- updated_at
+
+Criar módulo de conciliação.
+Funcionalidades:
+- Listar pagamentos por período
+- Filtrar por sistema de origem
+- Filtrar por provedor
+- Filtrar por status
+- Identificar divergências
+- Reconsultar status no provedor
+- Reenviar webhook
+- Exportar relatório
+
+Criar relatórios:
+- Total processado
+- Total recebido
+- Total pendente
+- Total falhado
+- Receita por sistema
+- Receita por método de pagamento
+- Receita por provedor
+- Taxas pagas aos provedores
+- Valor líquido recebido
+- Pagamentos por dia
+- Pagamentos por mês
+- Assinaturas ativas
+- Assinaturas vencidas
+- Inadimplência
+
+Criar painel administrativo com as páginas:
+1. Dashboard
+2. Pagamentos
+3. Clientes
+4. Assinaturas
+5. Sistemas integrados
+6. Provedores
+7. Webhooks
+8. Taxas
+9. Conciliação
+10. Relatórios
+11. API Keys
+12. Logs
+13. Configurações
+
+Dashboard deve exibir:
+- Total processado hoje
+- Total recebido hoje
+- Total pendente
+- Total falhado
+- Total processado no mês
+- Taxas pagas
+- Valor líquido
+- Pagamentos por método
+- Pagamentos por provedor
+- Pagamentos por sistema de origem
+- Últimas transações
+- Webhooks com erro
+
+Criar banco de dados com as tabelas:
+- users
+- integrated_systems
+- api_keys
+- customers
+- payments
+- payment_events
+- payment_attempts
+- provider_accounts
+- provider_fees
+- webhook_endpoints
+- webhook_deliveries
+- subscriptions
+- refunds
+- settlements
+- audit_logs
+
+Tabela payments:
+- id
+- source_system_id
+- customer_id
+- provider
+- provider_payment_id
+- provider_status
+- gateway_status
+- external_reference
+- amount
+- gross_amount
+- provider_fee
+- platform_fee
+- net_amount
+- currency
+- payment_method
+- description
+- installments
+- qr_code
+- qr_code_base64
+- copy_paste
+- boleto_url
+- boleto_barcode
+- boleto_digitable_line
+- payment_link_url
+- checkout_url
+- expires_at
+- due_date
+- paid_at
+- cancelled_at
+- refunded_at
+- created_at
+- updated_at
+
+Tabela payment_events:
+- id
+- payment_id
+- event
+- old_status
+- new_status
+- provider
+- payload
+- created_at
+
+Tabela webhook_deliveries:
+- id
+- payment_id
+- source_system_id
+- event
+- url
+- payload
+- headers
+- http_status
+- response_body
+- attempts
+- next_retry_at
+- status
+- created_at
+- updated_at
+
+Segurança obrigatória:
+- HTTPS obrigatório
+- API Keys com hash
+- Nunca salvar dados sensíveis de cartão
+- Usar tokenização do PagBank para cartão
+- Variáveis sensíveis apenas em .env
+- Rate limit por sistema
+- Rate limit por IP
+- Logs de auditoria
+- Idempotency-Key para criação de pagamento
+- Proteção contra replay attack
+- Assinatura HMAC em eventos internos
+- Backup automático
+- Separação entre sandbox e produção
+- Permissões por usuário
+- Permissões por sistema integrado
+
+Variáveis de ambiente:
+DATABASE_URL=
+REDIS_URL=
+JWT_SECRET=
+API_KEY_SECRET=
+WEBHOOK_SECRET=
+ASAAS_API_KEY_SANDBOX=
+ASAAS_API_KEY_PRODUCTION=
+PAGBANK_TOKEN_SANDBOX=
+PAGBANK_TOKEN_PRODUCTION=
+APP_ENV=
+APP_URL=
+PANEL_URL=
+
+Criar workers:
+- WebhookDeliveryWorker
+- PaymentReconciliationWorker
+- ProviderStatusSyncWorker
+- SubscriptionSyncWorker
+
+Criar documentação Swagger com:
+- Autenticação
+- Clientes
+- Pagamentos
+- Cancelamentos
+- Estornos
+- Assinaturas
+- Webhooks
+- Eventos
+- Status
+- Erros
+- Exemplos de payload
+- Exemplos de resposta
+
+Formato padrão de erro:
+{
+  "error": {
+    "code": "payment_not_found",
+    "message": "Pagamento não encontrado.",
+    "details": []
+  }
+}
+
+Códigos de erro:
+- invalid_api_key
+- unauthorized
+- forbidden
+- validation_error
+- payment_not_found
+- customer_not_found
+- provider_error
+- provider_unavailable
+- duplicate_idempotency_key
+- webhook_delivery_failed
+- refund_not_allowed
+- payment_already_paid
+- payment_expired
+
+Criar testes para:
+- Autenticação por API Key
+- Criação de cliente
+- Criação de Pix
+- Criação de boleto
+- Criação de link de pagamento
+- Criação de pagamento com cartão
+- Idempotência
+- Roteamento de provedor
+- Cálculo de taxas
+- Recebimento de webhook Asaas
+- Recebimento de webhook PagBank
+- Atualização de status
+- Envio de evento interno
+- Retentativas de webhook
+- Consulta de pagamento
+- Cancelamento
+- Estorno
+
+Criar docker-compose com:
+- API NestJS
+- PostgreSQL
+- Redis
+- Painel Next.js
+- Worker de filas
+
+Objetivo do MVP:
+Fase 1:
+- Login administrativo
+- Cadastro de sistemas integrados
+- Geração de API Keys
+- Cadastro de clientes
+- Criação de pagamento Pix via Asaas
+- Criação de boleto via Asaas
+- Recebimento de webhook Asaas
+- Atualização de status
+- Envio de evento para sistema interno
+- Painel básico de pagamentos
+- Logs de eventos
+
+Fase 2:
+- Integração PagBank
+- Link de pagamento
+- Cartão de crédito
+- Cartão de débito
+- Checkout
+- Webhook PagBank
+- Normalização de status
+
+Fase 3:
+- Assinaturas via Asaas
+- Cobranças mensais
+- Status de inadimplência
+- Eventos de assinatura
+- Relatórios de recorrência
+
+Fase 4:
+- Conciliação automática
+- Reconsulta de status
+- Relatórios financeiros
+- Exportação CSV
+- Dashboard avançado
+
+Fase 5:
+- Roteamento por taxa
+- Fallback automático
+- Escolha por sistema de origem
+- Escolha por valor
+- Multi-provedor futuro
+
+Importante:
+O UpPay Connect deve ser a camada única de pagamentos dos sistemas da UpFive7.
+Nenhum sistema interno deve integrar diretamente com Asaas ou PagBank.
+Todos devem usar o UpPay Connect.
+
+Asaas e PagBank devem ficar isolados como adapters internos.
+Toda resposta, status, erro, webhook e evento deve seguir o padrão interno do UpPay Connect.
+Regra central do projeto
+O UpPay Connect é a infraestrutura central de pagamentos da UpFive7.
+
+Todos os sistemas internos devem se comunicar apenas com o UpPay Connect.
+
+O UpPay Connect se comunica com Asaas e PagBank por trás.
+
+Os sistemas internos nunca precisam conhecer a regra, payload ou status específico de cada provedor.

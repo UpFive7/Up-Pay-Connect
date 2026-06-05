@@ -3,20 +3,40 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: UpPay Connect API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard summaries
+  - name: payments
+    description: Payment operations
+  - name: customers
+    description: Customer management
+  - name: systems
+    description: Integrated systems management
+  - name: api-keys
+    description: API key management
+  - name: subscriptions
+    description: Subscription management
+  - name: webhooks
+    description: Webhook deliveries
+  - name: fees
+    description: Provider fee configuration
+  - name: audit-logs
+    description: Audit log entries
+  - name: providers
+    description: Provider accounts
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +44,743 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Dashboard ──────────────────────────────────────────────────────────────
+
+  /v1/dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard KPI summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /v1/dashboard/payment-methods:
+    get:
+      operationId: getDashboardPaymentMethods
+      tags: [dashboard]
+      summary: Payments grouped by method
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethodBreakdown"
+
+  /v1/dashboard/providers:
+    get:
+      operationId: getDashboardProviders
+      tags: [dashboard]
+      summary: Payments grouped by provider
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderBreakdown"
+
+  /v1/dashboard/systems:
+    get:
+      operationId: getDashboardSystems
+      tags: [dashboard]
+      summary: Payments grouped by source system
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SystemBreakdown"
+
+  /v1/dashboard/recent-transactions:
+    get:
+      operationId: getDashboardRecentTransactions
+      tags: [dashboard]
+      summary: Get recent transactions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  /v1/dashboard/daily-volume:
+    get:
+      operationId: getDashboardDailyVolume
+      tags: [dashboard]
+      summary: Daily payment volume for last 30 days
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyVolume"
+
+  # ─── Payments ────────────────────────────────────────────────────────────────
+
+  /v1/payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List all payments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: provider
+          in: query
+          schema:
+            type: string
+        - name: payment_method
+          in: query
+          schema:
+            type: string
+        - name: source_system
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentList"
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create a new payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /v1/payments/{id}:
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Get payment by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Not found
+
+  /v1/payments/{id}/cancel:
+    post:
+      operationId: cancelPayment
+      tags: [payments]
+      summary: Cancel a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /v1/payments/{id}/refund:
+    post:
+      operationId: refundPayment
+      tags: [payments]
+      summary: Refund a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /v1/payments/{id}/events:
+    get:
+      operationId: getPaymentEvents
+      tags: [payments]
+      summary: Get events for a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentEvent"
+
+  # ─── Customers ────────────────────────────────────────────────────────────────
+
+  /v1/customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List all customers
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerList"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /v1/customers/{id}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /v1/customers/{id}/payments:
+    get:
+      operationId: getCustomerPayments
+      tags: [customers]
+      summary: Get payments for a customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  # ─── Integrated Systems ──────────────────────────────────────────────────────
+
+  /v1/systems:
+    get:
+      operationId: listSystems
+      tags: [systems]
+      summary: List integrated systems
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntegratedSystem"
+    post:
+      operationId: createSystem
+      tags: [systems]
+      summary: Register a new integrated system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegratedSystemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegratedSystem"
+
+  /v1/systems/{id}:
+    get:
+      operationId: getSystem
+      tags: [systems]
+      summary: Get integrated system by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegratedSystem"
+    patch:
+      operationId: updateSystem
+      tags: [systems]
+      summary: Update an integrated system
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegratedSystemUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegratedSystem"
+
+  # ─── API Keys ────────────────────────────────────────────────────────────────
+
+  /v1/api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [api-keys]
+      summary: List API keys for a system
+      parameters:
+        - name: system_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+    post:
+      operationId: createApiKey
+      tags: [api-keys]
+      summary: Create a new API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeyInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyWithSecret"
+
+  /v1/api-keys/{id}/revoke:
+    post:
+      operationId: revokeApiKey
+      tags: [api-keys]
+      summary: Revoke an API key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKey"
+
+  # ─── Subscriptions ───────────────────────────────────────────────────────────
+
+  /v1/subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [subscriptions]
+      summary: List subscriptions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: source_system
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionList"
+    post:
+      operationId: createSubscription
+      tags: [subscriptions]
+      summary: Create a subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /v1/subscriptions/{id}:
+    get:
+      operationId: getSubscription
+      tags: [subscriptions]
+      summary: Get subscription by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /v1/subscriptions/{id}/cancel:
+    post:
+      operationId: cancelSubscription
+      tags: [subscriptions]
+      summary: Cancel a subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  # ─── Webhooks ────────────────────────────────────────────────────────────────
+
+  /v1/webhooks/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      tags: [webhooks]
+      summary: List webhook deliveries
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: source_system_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveryList"
+
+  /v1/webhooks/deliveries/{id}/resend:
+    post:
+      operationId: resendWebhookDelivery
+      tags: [webhooks]
+      summary: Resend a webhook delivery
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDelivery"
+
+  /v1/webhooks/stats:
+    get:
+      operationId: getWebhookStats
+      tags: [webhooks]
+      summary: Get webhook delivery stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookStats"
+
+  # ─── Provider Fees ───────────────────────────────────────────────────────────
+
+  /v1/fees:
+    get:
+      operationId: listFees
+      tags: [fees]
+      summary: List provider fee configurations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderFee"
+    post:
+      operationId: createFee
+      tags: [fees]
+      summary: Create a fee configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderFeeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderFee"
+
+  /v1/fees/{id}:
+    patch:
+      operationId: updateFee
+      tags: [fees]
+      summary: Update a fee configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderFeeUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderFee"
+
+  # ─── Audit Logs ──────────────────────────────────────────────────────────────
+
+  /v1/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit-logs]
+      summary: List audit log entries
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: entity
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+
+  # ─── Providers ───────────────────────────────────────────────────────────────
+
+  /v1/providers:
+    get:
+      operationId: listProviders
+      tags: [providers]
+      summary: List provider accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderAccount"
+
+  /v1/providers/{id}:
+    patch:
+      operationId: updateProvider
+      tags: [providers]
+      summary: Update provider account configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderAccountUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderAccount"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +791,686 @@ components:
       required:
         - status
 
+    # ─── Dashboard ─────────────────────────────────────────────────────────────
+
+    DashboardSummary:
+      type: object
+      required:
+        - total_received_today
+        - total_pending
+        - total_paid_month
+        - total_failed
+        - total_provider_fees
+        - total_net_amount
+        - webhooks_with_error
+        - active_subscriptions
+      properties:
+        total_received_today:
+          type: integer
+        total_pending:
+          type: integer
+        total_paid_month:
+          type: integer
+        total_failed:
+          type: integer
+        total_provider_fees:
+          type: integer
+        total_net_amount:
+          type: integer
+        webhooks_with_error:
+          type: integer
+        active_subscriptions:
+          type: integer
+
+    PaymentMethodBreakdown:
+      type: object
+      required: [method, count, total_amount]
+      properties:
+        method:
+          type: string
+        count:
+          type: integer
+        total_amount:
+          type: integer
+
+    ProviderBreakdown:
+      type: object
+      required: [provider, count, total_amount]
+      properties:
+        provider:
+          type: string
+        count:
+          type: integer
+        total_amount:
+          type: integer
+
+    SystemBreakdown:
+      type: object
+      required: [source_system, count, total_amount]
+      properties:
+        source_system:
+          type: string
+        count:
+          type: integer
+        total_amount:
+          type: integer
+
+    DailyVolume:
+      type: object
+      required: [date, count, total_amount]
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+        total_amount:
+          type: integer
+
+    # ─── Payment ────────────────────────────────────────────────────────────────
+
+    Payment:
+      type: object
+      required:
+        - id
+        - amount
+        - currency
+        - payment_method
+        - status
+        - provider
+        - source_system
+        - created_at
+      properties:
+        id:
+          type: string
+        source_system_id:
+          type: ["string", "null"]
+        customer_id:
+          type: ["string", "null"]
+        provider:
+          type: string
+        provider_payment_id:
+          type: ["string", "null"]
+        status:
+          type: string
+        external_reference:
+          type: ["string", "null"]
+        amount:
+          type: integer
+        gross_amount:
+          type: ["integer", "null"]
+        provider_fee:
+          type: ["integer", "null"]
+        net_amount:
+          type: ["integer", "null"]
+        currency:
+          type: string
+        payment_method:
+          type: string
+        description:
+          type: ["string", "null"]
+        installments:
+          type: ["integer", "null"]
+        qr_code:
+          type: ["string", "null"]
+        qr_code_base64:
+          type: ["string", "null"]
+        copy_paste:
+          type: ["string", "null"]
+        boleto_url:
+          type: ["string", "null"]
+        boleto_barcode:
+          type: ["string", "null"]
+        boleto_digitable_line:
+          type: ["string", "null"]
+        payment_link_url:
+          type: ["string", "null"]
+        source_system:
+          type: string
+        callback_url:
+          type: ["string", "null"]
+        expires_at:
+          type: ["string", "null"]
+        due_date:
+          type: ["string", "null"]
+        paid_at:
+          type: ["string", "null"]
+        cancelled_at:
+          type: ["string", "null"]
+        refunded_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    PaymentList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    PaymentInput:
+      type: object
+      required: [amount, currency, payment_method, source_system]
+      properties:
+        amount:
+          type: integer
+        currency:
+          type: string
+        payment_method:
+          type: string
+        description:
+          type: string
+        external_reference:
+          type: string
+        source_system:
+          type: string
+        callback_url:
+          type: string
+        expires_in:
+          type: integer
+        customer_id:
+          type: string
+
+    RefundInput:
+      type: object
+      properties:
+        amount:
+          type: ["integer", "null"]
+
+    PaymentEvent:
+      type: object
+      required: [id, payment_id, event, created_at]
+      properties:
+        id:
+          type: string
+        payment_id:
+          type: string
+        event:
+          type: string
+        old_status:
+          type: ["string", "null"]
+        new_status:
+          type: ["string", "null"]
+        provider:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    # ─── Customer ────────────────────────────────────────────────────────────────
+
+    Customer:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        document:
+          type: ["string", "null"]
+        document_type:
+          type: ["string", "null"]
+        address_city:
+          type: ["string", "null"]
+        address_state:
+          type: ["string", "null"]
+        asaas_customer_id:
+          type: ["string", "null"]
+        pagbank_customer_id:
+          type: ["string", "null"]
+        created_by_system_id:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    CustomerList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    CustomerAddress:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        district:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip_code:
+          type: string
+
+    CustomerInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        document:
+          type: string
+        document_type:
+          type: string
+        address:
+          $ref: "#/components/schemas/CustomerAddress"
+
+    # ─── Integrated System ──────────────────────────────────────────────────────
+
+    IntegratedSystem:
+      type: object
+      required: [id, name, slug, status, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+        default_webhook_url:
+          type: ["string", "null"]
+        allowed_ips:
+          type: ["string", "null"]
+        environment:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    IntegratedSystemInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        default_webhook_url:
+          type: string
+        allowed_ips:
+          type: string
+        environment:
+          type: string
+
+    IntegratedSystemUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        default_webhook_url:
+          type: string
+        allowed_ips:
+          type: string
+        environment:
+          type: string
+
+    # ─── API Key ─────────────────────────────────────────────────────────────────
+
+    ApiKey:
+      type: object
+      required: [id, system_id, name, environment, status, created_at]
+      properties:
+        id:
+          type: string
+        system_id:
+          type: string
+        name:
+          type: string
+        key_prefix:
+          type: string
+        environment:
+          type: string
+        status:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        last_used_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    ApiKeyWithSecret:
+      type: object
+      required: [id, system_id, name, environment, status, key, created_at]
+      properties:
+        id:
+          type: string
+        system_id:
+          type: string
+        name:
+          type: string
+        key_prefix:
+          type: string
+        key:
+          type: string
+        environment:
+          type: string
+        status:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+
+    ApiKeyInput:
+      type: object
+      required: [system_id, name, environment]
+      properties:
+        system_id:
+          type: string
+        name:
+          type: string
+        environment:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    # ─── Subscription ────────────────────────────────────────────────────────────
+
+    Subscription:
+      type: object
+      required: [id, customer_id, amount, payment_method, billing_cycle, status, source_system, created_at]
+      properties:
+        id:
+          type: string
+        customer_id:
+          type: string
+        amount:
+          type: integer
+        payment_method:
+          type: string
+        billing_cycle:
+          type: string
+        description:
+          type: ["string", "null"]
+        source_system:
+          type: string
+        external_reference:
+          type: ["string", "null"]
+        status:
+          type: string
+        provider:
+          type: ["string", "null"]
+        provider_subscription_id:
+          type: ["string", "null"]
+        next_due_date:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    SubscriptionList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    SubscriptionInput:
+      type: object
+      required: [customer_id, amount, payment_method, billing_cycle, source_system]
+      properties:
+        customer_id:
+          type: string
+        amount:
+          type: integer
+        payment_method:
+          type: string
+        billing_cycle:
+          type: string
+        description:
+          type: string
+        source_system:
+          type: string
+        external_reference:
+          type: string
+        next_due_date:
+          type: string
+
+    # ─── Webhook Delivery ────────────────────────────────────────────────────────
+
+    WebhookDelivery:
+      type: object
+      required: [id, event, url, status, attempts, created_at]
+      properties:
+        id:
+          type: string
+        payment_id:
+          type: ["string", "null"]
+        source_system_id:
+          type: ["string", "null"]
+        event:
+          type: string
+        url:
+          type: string
+        http_status:
+          type: ["integer", "null"]
+        attempts:
+          type: integer
+        status:
+          type: string
+        next_retry_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    WebhookDeliveryList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookDelivery"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    WebhookStats:
+      type: object
+      required: [total, success, failed, pending, retrying]
+      properties:
+        total:
+          type: integer
+        success:
+          type: integer
+        failed:
+          type: integer
+        pending:
+          type: integer
+        retrying:
+          type: integer
+
+    # ─── Provider Fee ────────────────────────────────────────────────────────────
+
+    ProviderFee:
+      type: object
+      required: [id, provider, payment_method, fee_type, active, created_at]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        payment_method:
+          type: string
+        fee_type:
+          type: string
+        fixed_amount:
+          type: ["integer", "null"]
+        percentage_rate:
+          type: ["number", "null"]
+        settlement_days:
+          type: ["integer", "null"]
+        active:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    ProviderFeeInput:
+      type: object
+      required: [provider, payment_method, fee_type]
+      properties:
+        provider:
+          type: string
+        payment_method:
+          type: string
+        fee_type:
+          type: string
+        fixed_amount:
+          type: integer
+        percentage_rate:
+          type: number
+        settlement_days:
+          type: integer
+
+    ProviderFeeUpdate:
+      type: object
+      properties:
+        fixed_amount:
+          type: integer
+        percentage_rate:
+          type: number
+        settlement_days:
+          type: integer
+        active:
+          type: boolean
+
+    # ─── Audit Log ───────────────────────────────────────────────────────────────
+
+    AuditLog:
+      type: object
+      required: [id, action, entity, created_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: ["string", "null"]
+        source_system_id:
+          type: ["string", "null"]
+        action:
+          type: string
+        entity:
+          type: string
+        entity_id:
+          type: ["string", "null"]
+        ip_address:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    AuditLogList:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    # ─── Provider Account ─────────────────────────────────────────────────────────
+
+    ProviderAccount:
+      type: object
+      required: [id, provider, environment, status, created_at]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        environment:
+          type: string
+        status:
+          type: string
+        priority:
+          type: ["integer", "null"]
+        supported_methods:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+        updated_at:
+          type: ["string", "null"]
+
+    ProviderAccountUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        priority:
+          type: integer
+        supported_methods:
+          type: array
+          items:
+            type: string
