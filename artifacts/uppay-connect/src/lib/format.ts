@@ -8,10 +8,10 @@ export function formatCurrency(cents: number | undefined | null) {
 
 export function formatDate(dateString: string | undefined | null) {
   if (!dateString) return "-";
-  return new Intl.DateTimeFormatformat(new Date(dateString), {
+  return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
-    timeStyle: "short"
-  });
+    timeStyle: "short",
+  }).format(new Date(dateString));
 }
 
 export function getStatusColor(status: string) {
