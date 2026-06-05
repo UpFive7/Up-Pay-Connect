@@ -24,3 +24,11 @@ The canonical payment serializer `mapPayment` is exported from `dashboard.ts` an
 
 ## wouter only exports routing primitives
 `useState` must come from `react`, not `wouter`. Design subagent made this mistake once in `payments.tsx`.
+
+## Auth — web-only, mobile routes removed
+The `replit-auth` skill template includes mobile token exchange routes that import `ExchangeMobileAuthorizationCodeBody` etc. from `@workspace/api-zod`. Those schemas are only generated if mobile endpoints exist in the OpenAPI spec. For web-only apps: remove mobile imports + route handlers from `auth.ts`, and remove `deleteSession`/`ISSUER_URL` from the import list.
+
+**Why:** This app is a web internal panel — no mobile. Adding the full spec just to satisfy the template would bloat the API unnecessarily.
+
+## lib/replit-auth-web needs vite/client types
+Add `"types": ["vite/client"]` to `lib/replit-auth-web/tsconfig.json` and `vite: "catalog:"` to its `devDependencies`. Without this, `import.meta.env.BASE_URL` causes a TS2339 error during `typecheck:libs`.

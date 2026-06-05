@@ -67,12 +67,22 @@ Full-stack admin panel with:
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
 
+## Auth
+
+- Replit OIDC (OpenID Connect with PKCE) — web browser flow only (no mobile)
+- Server: `artifacts/api-server/src/lib/auth.ts` (session helpers), `src/middlewares/authMiddleware.ts` (loads user from session), `src/routes/auth.ts` (login/callback/logout)
+- Client: `@workspace/replit-auth-web` — use `useAuth()` hook; do NOT use generated API client for auth operations
+- Sessions stored in `sessions` table (PostgreSQL); session cookie `sid` is `httpOnly`, `secure`, `sameSite: lax`
+- Auth guard is in `App.tsx` → `<AuthGate>` — shows login screen if unauthenticated
+
 ## Gotchas
 
 - Always run `pnpm --filter @workspace/api-spec run codegen` after editing `openapi.yaml`
 - Always run `pnpm --filter @workspace/db run push` after editing schema files
 - Do NOT import `useState` from `wouter` — it only exports routing primitives
 - `mapPayment` is in `dashboard.ts` and must be imported with `.js` extension in ESM context
+- Mobile auth endpoints were intentionally removed from `auth.ts` — this is a web-only app
+- `lib/replit-auth-web` requires `"types": ["vite/client"]` in its tsconfig for `import.meta.env`
 
 ## Pointers
 
