@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { customersTable, paymentsTable } from "@workspace/db";
 import { eq, sql, or, ilike } from "drizzle-orm";
 import { mapPayment } from "./dashboard.js";
+import { createAsaasCustomer, AsaasError } from "../lib/asaas.js";
 
 const router = Router();
 
@@ -51,6 +52,7 @@ router.post("/", async (req, res): Promise<void> => {
     const { name, email, phone, document, document_type, address } = req.body;
     if (!name) { res.status(400).json({ error: "name is required" }); return; }
 
+    // Insert into our DB first
     const [customer] = await db
       .insert(customersTable)
       .values({
@@ -64,6 +66,33 @@ router.post("/", async (req, res): Promise<void> => {
         addressZipCode: address?.zip_code,
       })
       .returning();
+
+    // Sync to Asaas immediately (non-blocking — failure does not reject the request)
+    if (process.env.ASAAS_API_KEY) {
+      try {
+        const asaasCustomer = await createAsaasCustomer({
+          name,
+          cpfCnpj: document ?? undefined,
+          email: email ?? undefined,
+          mobilePhone: phone ?? undefined,
+        });
+
+        await db
+          .update(customersTable)
+          .set({ asaasCustomerId: asaasCustomer.id })
+          .where(eq(customersTable.id, customer.id));
+
+        customer.asaasCustomerId = asaasCustomer.id;
+        req.log.info({ customerId: customer.id, asaasId: asaasCustomer.id }, "Customer synced to Asaas");
+      } catch (asaasErr) {
+        // Log but don't fail the request — sync can be retried later
+        if (asaasErr instanceof AsaasError) {
+          req.log.warn({ err: asaasErr, customerId: customer.id }, "Asaas sync failed for new customer");
+        } else {
+          req.log.warn({ err: asaasErr, customerId: customer.id }, "Unexpected error syncing to Asaas");
+        }
+      }
+    }
 
     res.status(201).json(mapCustomer(customer));
   } catch (err) {
