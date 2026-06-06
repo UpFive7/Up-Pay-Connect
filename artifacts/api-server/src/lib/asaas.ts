@@ -1,4 +1,4 @@
-import logger from "./logger.js";
+import { logger } from "./logger.js";
 
 const ASAAS_BASE_URL = "https://sandbox.asaas.com/api/v3";
 
@@ -123,6 +123,70 @@ export interface AsaasIdentificationField {
 
 export async function getBoletoDigitableLine(paymentId: string): Promise<AsaasIdentificationField> {
   return asaasFetch<AsaasIdentificationField>(`/payments/${paymentId}/identificationField`);
+}
+
+// ─── Webhook registration ─────────────────────────────────────────────────────
+
+export type AsaasWebhookEvent =
+  | "PAYMENT_RECEIVED"
+  | "PAYMENT_CONFIRMED"
+  | "PAYMENT_OVERDUE"
+  | "PAYMENT_DELETED"
+  | "PAYMENT_REFUNDED"
+  | "PAYMENT_AWAITING_APPROVAL"
+  | "PAYMENT_RESTORED"
+  | "PAYMENT_BANK_SLIP_VIEWED"
+  | "PAYMENT_CHECKOUT_VIEWED"
+  | "PAYMENT_CHARGEBACK_REQUESTED"
+  | "PAYMENT_CHARGEBACK_DISPUTE"
+  | "PAYMENT_DUNNING_RECEIVED"
+  | "PAYMENT_DUNNING_REQUESTED";
+
+const ALL_PAYMENT_EVENTS: AsaasWebhookEvent[] = [
+  "PAYMENT_RECEIVED",
+  "PAYMENT_CONFIRMED",
+  "PAYMENT_OVERDUE",
+  "PAYMENT_DELETED",
+  "PAYMENT_REFUNDED",
+  "PAYMENT_AWAITING_APPROVAL",
+  "PAYMENT_RESTORED",
+  "PAYMENT_BANK_SLIP_VIEWED",
+  "PAYMENT_CHECKOUT_VIEWED",
+  "PAYMENT_CHARGEBACK_REQUESTED",
+  "PAYMENT_CHARGEBACK_DISPUTE",
+  "PAYMENT_DUNNING_RECEIVED",
+  "PAYMENT_DUNNING_REQUESTED",
+];
+
+export interface AsaasWebhookConfig {
+  id?: string;
+  url: string;
+  email: string;
+  apiVersion: number;
+  enabled: boolean;
+  interrupted: boolean;
+  authToken: string;
+  events: AsaasWebhookEvent[];
+}
+
+export async function registerWebhook(config: Omit<AsaasWebhookConfig, "apiVersion" | "events">): Promise<AsaasWebhookConfig> {
+  return asaasFetch<AsaasWebhookConfig>("/webhook", {
+    method: "POST",
+    body: JSON.stringify({
+      ...config,
+      apiVersion: 3,
+      events: ALL_PAYMENT_EVENTS,
+    }),
+  });
+}
+
+export async function getWebhookConfig(): Promise<AsaasWebhookConfig | null> {
+  try {
+    const result = await asaasFetch<{ data: AsaasWebhookConfig[] }>("/webhook");
+    return result.data?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Map billing type ─────────────────────────────────────────────────────────
