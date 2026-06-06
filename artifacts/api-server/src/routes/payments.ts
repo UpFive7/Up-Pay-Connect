@@ -12,6 +12,7 @@ import {
   toAsaasBillingType,
   dueDateFromNow,
 } from "../lib/asaas.js";
+import { syncPendingAsaasPayments } from "../lib/asaas-sync.js";
 
 const router = Router();
 
@@ -226,6 +227,21 @@ router.post("/", async (req, res): Promise<void> => {
       return;
     }
     req.log.error({ err }, "Error creating payment");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Manual sync trigger ──────────────────────────────────────────────────────
+
+router.post("/sync", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  try {
+    const olderThan = Number(req.query.older_than_minutes) || 0;
+    const result = await syncPendingAsaasPayments(olderThan, 100);
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Error running payment sync");
     res.status(500).json({ error: "Internal server error" });
   }
 });

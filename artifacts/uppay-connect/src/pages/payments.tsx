@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useListPayments } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CreatePaymentModal } from "@/components/create-payment-modal";
 
 const METHOD_LABELS: Record<string, string> = {
@@ -21,9 +23,31 @@ const METHOD_LABELS: Record<string, string> = {
   subscription: "Assinatura",
 };
 
+interface SyncResult { checked: number; updated: number; errors: number; }
+
 export default function Payments() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const { data, isLoading } = useListPayments();
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const { data, isLoading, refetch } = useListPayments();
+  const queryClient = useQueryClient();
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/v1/payments/sync?older_than_minutes=0", {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await res.json() as SyncResult;
+      setSyncResult(result);
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/dashboard"] });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const filtered = data?.data?.filter((p) =>
     statusFilter === "all" ? true : p.status === statusFilter
@@ -36,7 +60,26 @@ export default function Payments() {
           <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
           <p className="text-muted-foreground">Visualize e gerencie todas as transações.</p>
         </div>
-        <CreatePaymentModal />
+        <div className="flex items-center gap-2">
+          {syncResult && (
+            <span className="text-xs text-muted-foreground">
+              {syncResult.updated > 0
+                ? `✓ ${syncResult.updated} atualizado(s)`
+                : `${syncResult.checked} verificado(s), sem mudanças`}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Sincronizar"}
+          </Button>
+          <CreatePaymentModal />
+        </div>
       </div>
 
       <Card>

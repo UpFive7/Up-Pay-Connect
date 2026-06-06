@@ -100,6 +100,10 @@ export async function createAsaasPayment(data: AsaasPaymentInput): Promise<Asaas
   });
 }
 
+export async function getAsaasPayment(providerPaymentId: string): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>(`/payments/${providerPaymentId}`);
+}
+
 // ─── Pix QR Code ─────────────────────────────────────────────────────────────
 
 export interface AsaasPixQrCode {
