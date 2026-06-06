@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -148,6 +149,9 @@ export function CreateCustomerModal() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{created ? "Cliente Cadastrado" : "Novo Cliente"}</DialogTitle>
+          <DialogDescription>
+            {created ? "O cliente foi salvo e sincronizado com a Asaas." : "Preencha os dados para cadastrar um novo cliente."}
+          </DialogDescription>
         </DialogHeader>
 
         {created ? (
