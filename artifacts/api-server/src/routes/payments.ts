@@ -1,15 +1,51 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { paymentsTable, paymentEventsTable } from "@workspace/db";
-import { eq, sql, and, ilike } from "drizzle-orm";
+import { paymentsTable, paymentEventsTable, customersTable } from "@workspace/db";
+import { eq, sql, and } from "drizzle-orm";
 import { mapPayment } from "./dashboard.js";
+import {
+  AsaasError,
+  createAsaasCustomer,
+  createAsaasPayment,
+  getPixQrCode,
+  getBoletoDigitableLine,
+  toAsaasBillingType,
+  dueDateFromNow,
+} from "../lib/asaas.js";
 
 const router = Router();
 
-// Determine provider based on payment method
 function routeProvider(method: string): string {
   const asaasMap = ["pix", "boleto", "subscription"];
   return asaasMap.includes(method) ? "asaas" : "pagbank";
+}
+
+// Ensure customer exists in Asaas, creating if needed. Returns asaas customer id.
+async function ensureAsaasCustomer(customerId: string): Promise<string> {
+  const [customer] = await db
+    .select()
+    .from(customersTable)
+    .where(eq(customersTable.id, customerId));
+
+  if (!customer) throw new Error("Customer not found");
+
+  if (customer.asaasCustomerId) return customer.asaasCustomerId;
+
+  // Create in Asaas
+  const asaasCustomer = await createAsaasCustomer({
+    name: customer.name,
+    cpfCnpj: customer.document ?? undefined,
+    email: customer.email ?? undefined,
+    mobilePhone: customer.phone ?? undefined,
+  });
+
+  // Save back
+  await db
+    .update(customersTable)
+    .set({ asaasCustomerId: asaasCustomer.id })
+    .where(eq(customersTable.id, customerId));
+
+  return asaasCustomer.id;
 }
 
 router.get("/", async (req, res): Promise<void> => {
@@ -40,32 +76,118 @@ router.get("/", async (req, res): Promise<void> => {
 
 router.post("/", async (req, res): Promise<void> => {
   try {
-    const { amount, currency, payment_method, description, external_reference, source_system, callback_url, expires_in, customer_id } = req.body;
+    const {
+      amount, currency, payment_method, description,
+      external_reference, source_system, callback_url,
+      expires_in, customer_id,
+    } = req.body;
 
     if (!amount || !payment_method || !source_system) {
-      res.status(400).json({ error: "amount, payment_method and source_system are required" });
+      res.status(400).json({ error: "amount, payment_method and source_system são obrigatórios" });
       return;
     }
 
     const provider = routeProvider(payment_method);
+    const isAsaas = provider === "asaas";
+
+    // ── Asaas real integration ──────────────────────────────────────────────
+    if (isAsaas) {
+      if (!customer_id) {
+        res.status(400).json({ error: "Pagamentos via Pix e Boleto exigem um cliente. Selecione ou cadastre um cliente." });
+        return;
+      }
+
+      const asaasCustomerId = await ensureAsaasCustomer(customer_id);
+      const billingType = toAsaasBillingType(payment_method);
+      const valueReais = amount / 100;
+      const dueDate = dueDateFromNow(3);
+
+      const asaasPayment = await createAsaasPayment({
+        customer: asaasCustomerId,
+        billingType,
+        value: valueReais,
+        dueDate,
+        description: description ?? undefined,
+        externalReference: external_reference ?? undefined,
+      });
+
+      // Fetch extra data per method
+      let copyPaste: string | undefined;
+      let qrCodeBase64: string | undefined;
+      let boletoUrl: string | undefined;
+      let digitableLine: string | undefined;
+
+      if (payment_method === "pix") {
+        try {
+          const pix = await getPixQrCode(asaasPayment.id);
+          copyPaste = pix.payload;
+          qrCodeBase64 = pix.encodedImage;
+        } catch (e) {
+          req.log.warn({ err: e }, "Could not fetch Pix QR code");
+        }
+      }
+
+      if (payment_method === "boleto") {
+        boletoUrl = asaasPayment.bankSlipUrl;
+        try {
+          const boleto = await getBoletoDigitableLine(asaasPayment.id);
+          digitableLine = boleto.identificationField;
+        } catch (e) {
+          req.log.warn({ err: e }, "Could not fetch boleto digitable line");
+        }
+      }
+
+      // Net / fee (Asaas returns in reais → convert to centavos)
+      const netCents = asaasPayment.netValue != null ? Math.round(asaasPayment.netValue * 100) : Math.round(amount * 0.98);
+      const feeCents = asaasPayment.feeValue != null ? Math.round(asaasPayment.feeValue * 100) : Math.round(amount * 0.02);
+
+      const expiresAt = expires_in ? new Date(Date.now() + expires_in * 1000) : null;
+
+      const [payment] = await db
+        .insert(paymentsTable)
+        .values({
+          amount,
+          currency: currency || "BRL",
+          paymentMethod: payment_method,
+          description: description ?? null,
+          externalReference: external_reference ?? null,
+          sourceSystem: source_system,
+          callbackUrl: callback_url ?? null,
+          customerId: customer_id ?? null,
+          provider: "asaas",
+          providerPaymentId: asaasPayment.id,
+          providerStatus: asaasPayment.status,
+          status: "pending",
+          expiresAt,
+          dueDate,
+          grossAmount: amount,
+          netAmount: netCents,
+          providerFee: feeCents,
+          copyPaste: copyPaste ?? null,
+          qrCodeBase64: qrCodeBase64 ?? null,
+          boletoUrl: boletoUrl ?? null,
+          boletoDIgitableLine: digitableLine ?? null,
+        })
+        .returning();
+
+      await db.insert(paymentEventsTable).values({
+        paymentId: payment.id,
+        event: "payment.created",
+        oldStatus: null,
+        newStatus: "pending",
+        provider: "asaas",
+      });
+
+      res.status(201).json(mapPayment(payment));
+      return;
+    }
+
+    // ── PagBank (mock for now — will integrate when we have PagBank credentials) ──
+    const mockLinkData = payment_method === "payment_link"
+      ? { paymentLinkUrl: `https://pagseguro.uol.com.br/checkout/v2/payment.html?code=mock_${Math.random().toString(36).slice(2, 10)}` }
+      : {};
+
     const expiresAt = expires_in ? new Date(Date.now() + expires_in * 1000) : null;
-
-    // Simulate provider response with mock data
-    const mockPixData = payment_method === "pix" ? {
-      qrCode: "pix-qr-code-placeholder",
-      copyPaste: "00020126330014br.gov.bcb.pix01119999999999999520400005303986540510.005802BR5924UpPay Connect6009Sao Paulo6304A1B2",
-    } : {};
-
-    const mockBoletoData = payment_method === "boleto" ? {
-      boletoUrl: "https://boleto.exemplo.com/boleto",
-      boletoBarcode: "34191.79001 01043.510047 91020.150008 2 10010000011000",
-      boletoDIgitableLine: "34191790010104351004791020150008210010000011000",
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    } : {};
-
-    const mockLinkData = payment_method === "payment_link" ? {
-      paymentLinkUrl: `https://pagamento.uppay.com.br/pay_${Math.random().toString(36).slice(2, 10)}`,
-    } : {};
 
     const [payment] = await db
       .insert(paymentsTable)
@@ -73,19 +195,17 @@ router.post("/", async (req, res): Promise<void> => {
         amount,
         currency: currency || "BRL",
         paymentMethod: payment_method,
-        description,
-        externalReference: external_reference,
+        description: description ?? null,
+        externalReference: external_reference ?? null,
         sourceSystem: source_system,
-        callbackUrl: callback_url,
-        customerId: customer_id || null,
-        provider,
+        callbackUrl: callback_url ?? null,
+        customerId: customer_id ?? null,
+        provider: "pagbank",
         status: "pending",
         expiresAt,
         grossAmount: amount,
         netAmount: Math.round(amount * 0.98),
         providerFee: Math.round(amount * 0.02),
-        ...mockPixData,
-        ...mockBoletoData,
         ...mockLinkData,
       })
       .returning();
@@ -95,11 +215,16 @@ router.post("/", async (req, res): Promise<void> => {
       event: "payment.created",
       oldStatus: null,
       newStatus: "pending",
-      provider,
+      provider: "pagbank",
     });
 
     res.status(201).json(mapPayment(payment));
   } catch (err) {
+    if (err instanceof AsaasError) {
+      req.log.error({ err }, "Asaas API error creating payment");
+      res.status(502).json({ error: `Asaas: ${err.message}` });
+      return;
+    }
     req.log.error({ err }, "Error creating payment");
     res.status(500).json({ error: "Internal server error" });
   }

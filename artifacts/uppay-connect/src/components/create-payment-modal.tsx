@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCreatePayment, useListSystems } from "@workspace/api-client-react";
+import { useCreatePayment, useListSystems, useListCustomers } from "@workspace/api-client-react";
 import type { Payment } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,18 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format";
-import { Plus, Copy, Check, ExternalLink, QrCode, FileText, Link2 } from "lucide-react";
+import { Plus, Copy, Check, ExternalLink, QrCode, FileText, Link2, CreditCard, User } from "lucide-react";
 
 type Step = "form" | "result";
 
 const METHOD_OPTIONS = [
-  { value: "pix", label: "Pix", icon: QrCode, provider: "Asaas" },
-  { value: "boleto", label: "Boleto", icon: FileText, provider: "Asaas" },
-  { value: "payment_link", label: "Link de Pagamento", icon: Link2, provider: "PagBank" },
-  { value: "credit_card", label: "Cartão de Crédito", icon: ExternalLink, provider: "PagBank" },
+  { value: "pix", label: "Pix", icon: QrCode, provider: "Asaas", needsCustomer: true },
+  { value: "boleto", label: "Boleto", icon: FileText, provider: "Asaas", needsCustomer: true },
+  { value: "payment_link", label: "Link de Pagamento", icon: Link2, provider: "PagBank", needsCustomer: false },
+  { value: "credit_card", label: "Cartão de Crédito", icon: CreditCard, provider: "PagBank", needsCustomer: false },
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -43,7 +42,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="ml-2 p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      className="ml-2 p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
       title="Copiar"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -156,6 +155,9 @@ function PaymentResult({ payment, onClose }: { payment: Payment; onClose: () => 
       <div className="pt-1 border-t">
         <p className="text-xs text-muted-foreground text-center">
           ID: <span className="font-mono">{payment.id}</span>
+          {payment.provider && (
+            <span className="ml-2 capitalize text-muted-foreground/60">via {payment.provider}</span>
+          )}
         </p>
       </div>
 
@@ -174,11 +176,14 @@ export function CreatePaymentModal() {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("pix");
   const [sourceSystem, setSourceSystem] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [description, setDescription] = useState("");
   const [externalRef, setExternalRef] = useState("");
 
   const { data: systemsData } = useListSystems();
+  const { data: customersData } = useListCustomers();
   const queryClient = useQueryClient();
+
   const { mutate, isPending, error } = useCreatePayment({
     mutation: {
       onSuccess: (payment) => {
@@ -198,6 +203,7 @@ export function CreatePaymentModal() {
       setAmount("");
       setMethod("pix");
       setSourceSystem("");
+      setCustomerId("");
       setDescription("");
       setExternalRef("");
     }, 200);
@@ -214,6 +220,7 @@ export function CreatePaymentModal() {
         currency: "BRL",
         payment_method: method,
         source_system: sourceSystem,
+        customer_id: customerId || undefined,
         description: description || undefined,
         external_reference: externalRef || undefined,
       },
@@ -221,12 +228,25 @@ export function CreatePaymentModal() {
   };
 
   const selectedMethod = METHOD_OPTIONS.find((m) => m.value === method);
+  const needsCustomer = selectedMethod?.needsCustomer ?? false;
   const systems = Array.isArray(systemsData) ? systemsData : [];
+  const customers = customersData?.data ?? [];
 
+  const amountNum = parseFloat(amount.replace(",", "."));
   const isFormValid =
     amount.length > 0 &&
-    parseFloat(amount.replace(",", ".")) > 0 &&
-    sourceSystem.length > 0;
+    !isNaN(amountNum) &&
+    amountNum > 0 &&
+    sourceSystem.length > 0 &&
+    (!needsCustomer || customerId.length > 0);
+
+  // Extract error message from the mutation error
+  const errorMessage = (() => {
+    if (!error) return null;
+    // Try to parse the error response
+    const e = error as { response?: { data?: { error?: string } }; message?: string };
+    return e?.response?.data?.error ?? e?.message ?? "Erro ao criar pagamento. Tente novamente.";
+  })();
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
@@ -250,7 +270,7 @@ export function CreatePaymentModal() {
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
             {/* Method selector */}
             <div className="space-y-1.5">
-              <Label htmlFor="method">Método de Pagamento</Label>
+              <Label>Método de Pagamento</Label>
               <div className="grid grid-cols-2 gap-2">
                 {METHOD_OPTIONS.map((opt) => {
                   const Icon = opt.icon;
@@ -258,7 +278,7 @@ export function CreatePaymentModal() {
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setMethod(opt.value)}
+                      onClick={() => { setMethod(opt.value); setCustomerId(""); }}
                       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left ${
                         method === opt.value
                           ? "border-[#FF6B2B] bg-[#FF6B2B]/5 text-[#FF6B2B]"
@@ -289,15 +309,49 @@ export function CreatePaymentModal() {
                   inputMode="decimal"
                   placeholder="0,00"
                   value={amount}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/[^0-9,\.]/g, "");
-                    setAmount(v);
-                  }}
+                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9,\.]/g, ""))}
                   className="pl-9"
                   required
                 />
               </div>
             </div>
+
+            {/* Customer — required for Asaas methods */}
+            {needsCustomer && (
+              <div className="space-y-1.5">
+                <Label htmlFor="customer" className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  Cliente <span className="text-red-500">*</span>
+                </Label>
+                <Select value={customerId} onValueChange={setCustomerId} required>
+                  <SelectTrigger id="customer">
+                    <SelectValue placeholder="Selecione o cliente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.length === 0 && (
+                      <div className="py-3 px-2 text-sm text-muted-foreground text-center">
+                        Nenhum cliente cadastrado
+                      </div>
+                    )}
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex flex-col">
+                          <span>{c.name}</span>
+                          {c.document && (
+                            <span className="text-xs text-muted-foreground font-mono">{c.document}</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {needsCustomer && !customerId && (
+                  <p className="text-xs text-amber-600">
+                    Pix e Boleto exigem um cliente para emissão via Asaas.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Source system */}
             <div className="space-y-1.5">
@@ -331,7 +385,7 @@ export function CreatePaymentModal() {
             {/* Description */}
             <div className="space-y-1.5">
               <Label htmlFor="desc">
-                Descrição <span className="text-muted-foreground font-normal">(opcional)</span>
+                Descrição <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
               </Label>
               <Input
                 id="desc"
@@ -344,7 +398,7 @@ export function CreatePaymentModal() {
             {/* External reference */}
             <div className="space-y-1.5">
               <Label htmlFor="ref">
-                Referência Externa <span className="text-muted-foreground font-normal">(opcional)</span>
+                Referência Externa <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
               </Label>
               <Input
                 id="ref"
@@ -355,21 +409,22 @@ export function CreatePaymentModal() {
             </div>
 
             {/* Summary */}
-            {selectedMethod && amount && parseFloat(amount.replace(",", ".")) > 0 && (
+            {selectedMethod && amountNum > 0 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border text-sm">
                 <span className="text-muted-foreground">
                   {selectedMethod.label} via {selectedMethod.provider}
+                  {selectedMethod.needsCustomer && <span className="ml-1 text-xs">(real)</span>}
                 </span>
                 <span className="font-semibold text-[#FF6B2B]">
-                  {formatCurrency(Math.round(parseFloat(amount.replace(",", ".")) * 100))}
+                  {formatCurrency(Math.round(amountNum * 100))}
                 </span>
               </div>
             )}
 
-            {error && (
-              <p className="text-sm text-red-500 text-center">
-                Erro ao criar pagamento. Tente novamente.
-              </p>
+            {errorMessage && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              </div>
             )}
 
             <div className="flex gap-2 pt-1">
