@@ -9,6 +9,7 @@ export const integratedSystemsTable = pgTable("integrated_systems", {
   description: text("description"),
   status: text("status").notNull().default("active"),
   defaultWebhookUrl: text("default_webhook_url"),
+  webhookSecret: text("webhook_secret"),
   allowedIps: text("allowed_ips"),
   environment: text("environment").notNull().default("sandbox"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

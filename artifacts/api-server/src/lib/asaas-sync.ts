@@ -3,6 +3,7 @@ import { paymentsTable, paymentEventsTable } from "@workspace/db";
 import { eq, and, lt, isNotNull, inArray } from "drizzle-orm";
 import { getAsaasPayment } from "./asaas.js";
 import { logger } from "./logger.js";
+import { enqueueOutboundWebhook } from "./webhook-delivery.js";
 
 // Map Asaas payment status → our internal status
 const ASAAS_STATUS_MAP: Record<string, string> = {
@@ -82,10 +83,11 @@ export async function syncPendingAsaasPayments(
           updates.providerFee = payment.amount - Math.round(asaasPayment.netValue * 100);
         }
 
-        await db
+        const [updatedPayment] = await db
           .update(paymentsTable)
           .set(updates)
-          .where(eq(paymentsTable.id, payment.id));
+          .where(eq(paymentsTable.id, payment.id))
+          .returning();
 
         await db.insert(paymentEventsTable).values({
           paymentId: payment.id,
@@ -94,6 +96,7 @@ export async function syncPendingAsaasPayments(
           newStatus,
           provider: "asaas",
         });
+        void enqueueOutboundWebhook(`payment.${newStatus}`, updatedPayment);
 
         logger.info({ paymentId: payment.id, oldStatus, newStatus }, "Asaas sync: status updated");
         updated++;

@@ -15,6 +15,7 @@ import {
   dueDateFromNow,
 } from "../lib/asaas.js";
 import { syncPendingAsaasPayments } from "../lib/asaas-sync.js";
+import { enqueueOutboundWebhook } from "../lib/webhook-delivery.js";
 
 const router = Router();
 
@@ -180,6 +181,7 @@ router.post("/", async (req, res): Promise<void> => {
         newStatus: "pending",
         provider: "asaas",
       });
+      void enqueueOutboundWebhook("payment.created", payment);
 
       res.status(201).json(mapPayment(payment));
       return;
@@ -220,6 +222,7 @@ router.post("/", async (req, res): Promise<void> => {
       newStatus: "pending",
       provider: "pagbank",
     });
+    void enqueueOutboundWebhook("payment.created", payment);
 
     res.status(201).json(mapPayment(payment));
   } catch (err) {
@@ -296,6 +299,7 @@ router.post("/:id/cancel", async (req, res): Promise<void> => {
       newStatus: "cancelled",
       provider: existing.provider,
     });
+    void enqueueOutboundWebhook("payment.cancelled", updated);
 
     res.json(mapPayment(updated));
   } catch (err) {
@@ -345,6 +349,7 @@ router.post("/:id/refund", async (req, res): Promise<void> => {
       newStatus,
       provider: existing.provider,
     });
+    void enqueueOutboundWebhook(`payment.${newStatus}`, updated);
 
     res.json(mapPayment(updated));
   } catch (err) {

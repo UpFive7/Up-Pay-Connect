@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { webhookDeliveriesTable, paymentsTable, paymentEventsTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import { registerWebhook, getWebhookConfig, AsaasError } from "../lib/asaas.js";
+import { enqueueOutboundWebhook } from "../lib/webhook-delivery.js";
 import crypto from "crypto";
 
 const router = Router();
@@ -128,10 +129,11 @@ router.post("/asaas", async (req, res): Promise<void> => {
         updates.providerFee = payment.amount - Math.round(asaasPayment.netValue * 100);
       }
 
-      await db
+      const [updatedPayment] = await db
         .update(paymentsTable)
         .set(updates)
-        .where(eq(paymentsTable.id, payment.id));
+        .where(eq(paymentsTable.id, payment.id))
+        .returning();
 
       await db.insert(paymentEventsTable).values({
         paymentId: payment.id,
@@ -140,6 +142,7 @@ router.post("/asaas", async (req, res): Promise<void> => {
         newStatus,
         provider: "asaas",
       });
+      void enqueueOutboundWebhook(`payment.${newStatus}`, updatedPayment);
 
       req.log.info({ paymentId: payment.id, event, oldStatus, newStatus }, "Payment status updated via webhook");
     }
