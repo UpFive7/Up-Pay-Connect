@@ -180,6 +180,7 @@ function mapPayment(p: typeof paymentsTable.$inferSelect) {
     boleto_barcode: p.boletoBarcode,
     boleto_digitable_line: p.boletoDIgitableLine,
     payment_link_url: p.paymentLinkUrl,
+    checkout_url: p.checkoutUrl,
     source_system: p.sourceSystem,
     callback_url: p.callbackUrl,
     expires_at: p.expiresAt?.toISOString() ?? null,

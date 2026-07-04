@@ -45,6 +45,8 @@ export interface Payment {
   boleto_digitable_line?: string | null;
   /** @nullable */
   payment_link_url?: string | null;
+  /** @nullable */
+  checkout_url?: string | null;
   source_system: string;
   /** @nullable */
   callback_url?: string | null;

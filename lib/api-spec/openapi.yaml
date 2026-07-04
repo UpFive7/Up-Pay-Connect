@@ -408,6 +408,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Customer"
+    patch:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Update a customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
 
   /v1/customers/{id}/payments:
     get:
@@ -990,6 +1013,8 @@ components:
         boleto_digitable_line:
           type: ["string", "null"]
         payment_link_url:
+          type: ["string", "null"]
+        checkout_url:
           type: ["string", "null"]
         source_system:
           type: string

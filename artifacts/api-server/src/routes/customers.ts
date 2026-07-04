@@ -112,6 +112,68 @@ router.get("/:id", async (req, res): Promise<void> => {
   }
 });
 
+router.patch("/:id", async (req, res): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, document, document_type, address } = req.body;
+
+    const [existing] = await db.select().from(customersTable).where(eq(customersTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Customer not found" }); return; }
+    if (name !== undefined && !name) { res.status(400).json({ error: "name cannot be empty" }); return; }
+
+    const [customer] = await db
+      .update(customersTable)
+      .set({
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(document !== undefined && { document }),
+        ...(document_type !== undefined && { documentType: document_type }),
+        ...(address?.street !== undefined && { addressStreet: address.street }),
+        ...(address?.number !== undefined && { addressNumber: address.number }),
+        ...(address?.district !== undefined && { addressDistrict: address.district }),
+        ...(address?.city !== undefined && { addressCity: address.city }),
+        ...(address?.state !== undefined && { addressState: address.state }),
+        ...(address?.zip_code !== undefined && { addressZipCode: address.zip_code }),
+        updatedAt: new Date(),
+      })
+      .where(eq(customersTable.id, id))
+      .returning();
+
+    // Re-sync to Asaas if already linked, or create if now eligible and not yet linked
+    if (process.env.ASAAS_API_KEY) {
+      try {
+        const asaasCustomer = await createAsaasCustomer({
+          name: customer.name,
+          cpfCnpj: customer.document ?? undefined,
+          email: customer.email ?? undefined,
+          mobilePhone: customer.phone ?? undefined,
+        });
+
+        if (!customer.asaasCustomerId) {
+          await db
+            .update(customersTable)
+            .set({ asaasCustomerId: asaasCustomer.id })
+            .where(eq(customersTable.id, id));
+          customer.asaasCustomerId = asaasCustomer.id;
+        }
+        req.log.info({ customerId: id, asaasId: asaasCustomer.id }, "Customer re-synced to Asaas after update");
+      } catch (asaasErr) {
+        if (asaasErr instanceof AsaasError) {
+          req.log.warn({ err: asaasErr, customerId: id }, "Asaas sync failed on customer update");
+        } else {
+          req.log.warn({ err: asaasErr, customerId: id }, "Unexpected error syncing to Asaas on update");
+        }
+      }
+    }
+
+    res.json(mapCustomer(customer));
+  } catch (err) {
+    req.log.error({ err }, "Error updating customer");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id/payments", async (req, res): Promise<void> => {
   try {
     const rows = await db

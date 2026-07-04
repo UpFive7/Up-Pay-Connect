@@ -134,6 +134,7 @@ export const GetDashboardRecentTransactionsResponseItem = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),
@@ -194,6 +195,7 @@ export const ListPaymentsResponse = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),
@@ -256,6 +258,7 @@ export const GetPaymentResponse = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),
@@ -298,6 +301,7 @@ export const CancelPaymentResponse = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),
@@ -344,6 +348,7 @@ export const RefundPaymentResponse = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),
@@ -451,6 +456,46 @@ export const GetCustomerResponse = zod.object({
 
 
 /**
+ * @summary Update a customer
+ */
+export const UpdateCustomerParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateCustomerBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "document": zod.string().optional(),
+  "document_type": zod.string().optional(),
+  "address": zod.object({
+  "street": zod.string().optional(),
+  "number": zod.string().optional(),
+  "district": zod.string().optional(),
+  "city": zod.string().optional(),
+  "state": zod.string().optional(),
+  "zip_code": zod.string().optional()
+}).optional()
+})
+
+export const UpdateCustomerResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "document": zod.string().nullish(),
+  "document_type": zod.string().nullish(),
+  "address_city": zod.string().nullish(),
+  "address_state": zod.string().nullish(),
+  "asaas_customer_id": zod.string().nullish(),
+  "pagbank_customer_id": zod.string().nullish(),
+  "created_by_system_id": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string().nullish()
+})
+
+
+/**
  * @summary Get payments for a customer
  */
 export const GetCustomerPaymentsParams = zod.object({
@@ -480,6 +525,7 @@ export const GetCustomerPaymentsResponseItem = zod.object({
   "boleto_barcode": zod.string().nullish(),
   "boleto_digitable_line": zod.string().nullish(),
   "payment_link_url": zod.string().nullish(),
+  "checkout_url": zod.string().nullish(),
   "source_system": zod.string(),
   "callback_url": zod.string().nullish(),
   "expires_at": zod.string().nullish(),

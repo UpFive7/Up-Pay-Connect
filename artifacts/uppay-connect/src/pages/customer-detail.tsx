@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getStatusColor } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EditCustomerModal } from "@/components/edit-customer-modal";
 import {
   ArrowLeft,
   User,
@@ -133,43 +134,46 @@ export default function CustomerDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/customers" className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF6B2B]/10 flex items-center justify-center">
-            <span className="text-sm font-bold text-[#FF6B2B]">{initials}</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">{customer.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              {customer.email && (
-                <span className="text-sm text-muted-foreground">{customer.email}</span>
-              )}
-              {customer.document && (
-                <>
-                  <span className="text-muted-foreground/40">•</span>
-                  <span className="text-sm font-mono text-muted-foreground">{customer.document}</span>
-                  {customer.document_type && (
-                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 uppercase">
-                      {customer.document_type}
-                    </Badge>
-                  )}
-                </>
-              )}
-              {customer.asaas_customer_id ? (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-green-500/30 text-green-600">
-                  Asaas ✓
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
-                  sem sync Asaas
-                </Badge>
-              )}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/customers" className="text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#FF6B2B]/10 flex items-center justify-center">
+              <span className="text-sm font-bold text-[#FF6B2B]">{initials}</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">{customer.name}</h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                {customer.email && (
+                  <span className="text-sm text-muted-foreground">{customer.email}</span>
+                )}
+                {customer.document && (
+                  <>
+                    <span className="text-muted-foreground/40">•</span>
+                    <span className="text-sm font-mono text-muted-foreground">{customer.document}</span>
+                    {customer.document_type && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 uppercase">
+                        {customer.document_type}
+                      </Badge>
+                    )}
+                  </>
+                )}
+                {customer.asaas_customer_id ? (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-green-500/30 text-green-600">
+                    Asaas ✓
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
+                    sem sync Asaas
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
+        <EditCustomerModal customer={customer} />
       </div>
 
       {/* Stats */}
