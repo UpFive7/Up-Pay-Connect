@@ -1,7 +1,15 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { subscriptionsTable } from "@workspace/db";
+import { subscriptionsTable, customersTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
+import {
+  AsaasError,
+  createAsaasCustomer,
+  createAsaasSubscription,
+  cancelAsaasSubscription,
+  toAsaasBillingType,
+  toAsaasBillingCycle,
+} from "../lib/asaas.js";
 
 const router = Router();
 
@@ -54,10 +62,66 @@ router.post("/", async (req, res): Promise<void> => {
       res.status(400).json({ error: "customer_id, amount, payment_method, billing_cycle and source_system are required" });
       return;
     }
+    if (!next_due_date) {
+      res.status(400).json({ error: "next_due_date is required" });
+      return;
+    }
+
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, customer_id));
+    if (!customer) { res.status(404).json({ error: "Customer not found" }); return; }
+
+    let asaasCustomerId = customer.asaasCustomerId;
+    let providerSubscriptionId: string | null = null;
+    let status = "active";
+
+    if (process.env.ASAAS_API_KEY) {
+      try {
+        if (!asaasCustomerId) {
+          const asaasCustomer = await createAsaasCustomer({
+            name: customer.name,
+            cpfCnpj: customer.document ?? undefined,
+            email: customer.email ?? undefined,
+            mobilePhone: customer.phone ?? undefined,
+          });
+          asaasCustomerId = asaasCustomer.id;
+          await db.update(customersTable).set({ asaasCustomerId }).where(eq(customersTable.id, customer_id));
+        }
+
+        const asaasSub = await createAsaasSubscription({
+          customer: asaasCustomerId,
+          billingType: toAsaasBillingType(payment_method),
+          value: amount / 100,
+          nextDueDate: next_due_date,
+          cycle: toAsaasBillingCycle(billing_cycle),
+          description: description ?? undefined,
+          externalReference: external_reference ?? undefined,
+        });
+        providerSubscriptionId = asaasSub.id;
+      } catch (asaasErr) {
+        if (asaasErr instanceof AsaasError) {
+          req.log.error({ err: asaasErr }, "Asaas subscription creation failed");
+          res.status(502).json({ error: `Asaas: ${asaasErr.message}` });
+          return;
+        }
+        throw asaasErr;
+      }
+    }
 
     const [sub] = await db
       .insert(subscriptionsTable)
-      .values({ customerId: customer_id, amount, paymentMethod: payment_method, billingCycle: billing_cycle, description, sourceSystem: source_system, externalReference: external_reference, nextDueDate: next_due_date, status: "active", provider: "asaas" })
+      .values({
+        customerId: customer_id,
+        amount,
+        paymentMethod: payment_method,
+        billingCycle: billing_cycle,
+        description,
+        sourceSystem: source_system,
+        externalReference: external_reference,
+        nextDueDate: next_due_date,
+        status,
+        provider: "asaas",
+        providerSubscriptionId,
+      })
       .returning();
 
     res.status(201).json(mapSub(sub));
@@ -80,12 +144,32 @@ router.get("/:id", async (req, res): Promise<void> => {
 
 router.post("/:id/cancel", async (req, res): Promise<void> => {
   try {
+    const [existing] = await db.select().from(subscriptionsTable).where(eq(subscriptionsTable.id, req.params.id));
+    if (!existing) { res.status(404).json({ error: "Subscription not found" }); return; }
+
+    if (existing.status === "cancelled") {
+      res.status(400).json({ error: "Assinatura já está cancelada" });
+      return;
+    }
+
+    if (existing.provider === "asaas" && existing.providerSubscriptionId) {
+      try {
+        await cancelAsaasSubscription(existing.providerSubscriptionId);
+      } catch (asaasErr) {
+        if (asaasErr instanceof AsaasError) {
+          req.log.error({ err: asaasErr, subscriptionId: existing.id }, "Asaas subscription cancel failed");
+          res.status(502).json({ error: `Asaas: ${asaasErr.message}` });
+          return;
+        }
+        throw asaasErr;
+      }
+    }
+
     const [updated] = await db
       .update(subscriptionsTable)
       .set({ status: "cancelled" })
       .where(eq(subscriptionsTable.id, req.params.id))
       .returning();
-    if (!updated) { res.status(404).json({ error: "Subscription not found" }); return; }
     res.json(mapSub(updated));
   } catch (err) {
     req.log.error({ err }, "Error cancelling subscription");

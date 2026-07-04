@@ -7,6 +7,8 @@ import {
   AsaasError,
   createAsaasCustomer,
   createAsaasPayment,
+  cancelAsaasPayment,
+  refundAsaasPayment,
   getPixQrCode,
   getBoletoDigitableLine,
   toAsaasBillingType,
@@ -262,6 +264,25 @@ router.post("/:id/cancel", async (req, res): Promise<void> => {
     const [existing] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Payment not found" }); return; }
 
+    if (["paid", "refunded", "partially_refunded", "cancelled"].includes(existing.status)) {
+      res.status(400).json({ error: `Não é possível cancelar uma cobrança com status "${existing.status}"` });
+      return;
+    }
+
+    // Cancel at the provider first — if it fails, do not touch local state
+    if (existing.provider === "asaas" && existing.providerPaymentId) {
+      try {
+        await cancelAsaasPayment(existing.providerPaymentId);
+      } catch (asaasErr) {
+        if (asaasErr instanceof AsaasError) {
+          req.log.error({ err: asaasErr, paymentId: existing.id }, "Asaas cancel failed");
+          res.status(502).json({ error: `Asaas: ${asaasErr.message}` });
+          return;
+        }
+        throw asaasErr;
+      }
+    }
+
     const [updated] = await db
       .update(paymentsTable)
       .set({ status: "cancelled", cancelledAt: new Date() })
@@ -273,6 +294,7 @@ router.post("/:id/cancel", async (req, res): Promise<void> => {
       event: "payment.cancelled",
       oldStatus: existing.status,
       newStatus: "cancelled",
+      provider: existing.provider,
     });
 
     res.json(mapPayment(updated));
@@ -287,8 +309,28 @@ router.post("/:id/refund", async (req, res): Promise<void> => {
     const [existing] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Payment not found" }); return; }
 
-    const refundAmount = req.body?.amount;
+    if (existing.status !== "paid" && existing.status !== "partially_refunded") {
+      res.status(400).json({ error: `Só é possível estornar uma cobrança paga (status atual: "${existing.status}")` });
+      return;
+    }
+
+    const refundAmount = req.body?.amount as number | undefined;
     const newStatus = refundAmount && refundAmount < existing.amount ? "partially_refunded" : "refunded";
+
+    // Refund at the provider first — if it fails, do not touch local state
+    if (existing.provider === "asaas" && existing.providerPaymentId) {
+      try {
+        const valueReais = refundAmount ? refundAmount / 100 : undefined;
+        await refundAsaasPayment(existing.providerPaymentId, valueReais);
+      } catch (asaasErr) {
+        if (asaasErr instanceof AsaasError) {
+          req.log.error({ err: asaasErr, paymentId: existing.id }, "Asaas refund failed");
+          res.status(502).json({ error: `Asaas: ${asaasErr.message}` });
+          return;
+        }
+        throw asaasErr;
+      }
+    }
 
     const [updated] = await db
       .update(paymentsTable)
@@ -301,6 +343,7 @@ router.post("/:id/refund", async (req, res): Promise<void> => {
       event: `payment.${newStatus}`,
       oldStatus: existing.status,
       newStatus,
+      provider: existing.provider,
     });
 
     res.json(mapPayment(updated));

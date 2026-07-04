@@ -104,6 +104,25 @@ export async function getAsaasPayment(providerPaymentId: string): Promise<AsaasP
   return asaasFetch<AsaasPayment>(`/payments/${providerPaymentId}`);
 }
 
+export async function cancelAsaasPayment(providerPaymentId: string): Promise<{ deleted: boolean; id: string }> {
+  return asaasFetch<{ deleted: boolean; id: string }>(`/payments/${providerPaymentId}`, {
+    method: "DELETE",
+  });
+}
+
+export interface AsaasRefundResult {
+  id: string;
+  status: string;
+  value?: number;
+}
+
+export async function refundAsaasPayment(providerPaymentId: string, value?: number): Promise<AsaasRefundResult> {
+  return asaasFetch<AsaasRefundResult>(`/payments/${providerPaymentId}/refund`, {
+    method: "POST",
+    body: JSON.stringify(value != null ? { value } : {}),
+  });
+}
+
 // ─── Pix QR Code ─────────────────────────────────────────────────────────────
 
 export interface AsaasPixQrCode {
@@ -127,6 +146,55 @@ export interface AsaasIdentificationField {
 
 export async function getBoletoDigitableLine(paymentId: string): Promise<AsaasIdentificationField> {
   return asaasFetch<AsaasIdentificationField>(`/payments/${paymentId}/identificationField`);
+}
+
+// ─── Subscription ────────────────────────────────────────────────────────────
+
+export type AsaasBillingCycle = "WEEKLY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUALLY" | "YEARLY";
+
+export interface AsaasSubscriptionInput {
+  customer: string;
+  billingType: AsaasBillingType;
+  value: number;
+  nextDueDate: string;
+  cycle: AsaasBillingCycle;
+  description?: string;
+  externalReference?: string;
+}
+
+export interface AsaasSubscription {
+  id: string;
+  status: string;
+  customer: string;
+  billingType: string;
+  value: number;
+  cycle: string;
+  nextDueDate: string;
+  description?: string;
+}
+
+export async function createAsaasSubscription(data: AsaasSubscriptionInput): Promise<AsaasSubscription> {
+  return asaasFetch<AsaasSubscription>("/subscriptions", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function cancelAsaasSubscription(providerSubscriptionId: string): Promise<{ deleted: boolean; id: string }> {
+  return asaasFetch<{ deleted: boolean; id: string }>(`/subscriptions/${providerSubscriptionId}`, {
+    method: "DELETE",
+  });
+}
+
+export function toAsaasBillingCycle(cycle: string): AsaasBillingCycle {
+  const map: Record<string, AsaasBillingCycle> = {
+    weekly: "WEEKLY",
+    monthly: "MONTHLY",
+    quarterly: "QUARTERLY",
+    semiannually: "SEMIANNUALLY",
+    yearly: "YEARLY",
+  };
+  return map[cycle] ?? "MONTHLY";
 }
 
 // ─── Webhook registration ─────────────────────────────────────────────────────
