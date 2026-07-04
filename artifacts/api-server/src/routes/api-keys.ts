@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { apiKeysTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -32,7 +33,7 @@ function mapKey(k: typeof apiKeysTable.$inferSelect, includeSecret?: boolean, se
   return base;
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requireSession, async (req, res): Promise<void> => {
   try {
     const { system_id } = req.query as Record<string, string>;
     const where = system_id ? eq(apiKeysTable.systemId, system_id) : undefined;
@@ -44,7 +45,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requireSession, async (req, res): Promise<void> => {
   try {
     const { system_id, name, environment, permissions } = req.body;
     if (!system_id || !name || !environment) {
@@ -65,7 +66,7 @@ router.post("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/:id/revoke", async (req, res): Promise<void> => {
+router.post("/:id/revoke", requireSession, async (req, res): Promise<void> => {
   try {
     const [updated] = await db
       .update(apiKeysTable)

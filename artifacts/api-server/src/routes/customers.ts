@@ -4,6 +4,7 @@ import { customersTable, paymentsTable } from "@workspace/db";
 import { eq, sql, or, ilike } from "drizzle-orm";
 import { mapPayment } from "./dashboard.js";
 import { createAsaasCustomer, AsaasError } from "../lib/asaas.js";
+import { requirePermission } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -25,7 +26,7 @@ function mapCustomer(c: typeof customersTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requirePermission("customers:read"), async (req, res): Promise<void> => {
   try {
     const { search, limit = "20", offset = "0" } = req.query as Record<string, string>;
     const lim = Math.min(Number(limit) || 20, 100);
@@ -47,7 +48,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requirePermission("customers:write"), async (req, res): Promise<void> => {
   try {
     const { name, email, phone, document, document_type, address } = req.body;
     if (!name) { res.status(400).json({ error: "name is required" }); return; }
@@ -101,7 +102,7 @@ router.post("/", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id", async (req, res): Promise<void> => {
+router.get("/:id", requirePermission("customers:read"), async (req, res): Promise<void> => {
   try {
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.params.id));
     if (!customer) { res.status(404).json({ error: "Customer not found" }); return; }
@@ -112,7 +113,7 @@ router.get("/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/:id", async (req, res): Promise<void> => {
+router.patch("/:id", requirePermission("customers:write"), async (req, res): Promise<void> => {
   try {
     const { id } = req.params;
     const { name, email, phone, document, document_type, address } = req.body;
@@ -174,7 +175,7 @@ router.patch("/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id/payments", async (req, res): Promise<void> => {
+router.get("/:id/payments", requirePermission("customers:read"), async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select()

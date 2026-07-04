@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { integratedSystemsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ function mapSystem(s: typeof integratedSystemsTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db.select().from(integratedSystemsTable).orderBy(sql`${integratedSystemsTable.createdAt} desc`);
     res.json(rows.map(mapSystem));
@@ -30,7 +31,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requireSession, async (req, res): Promise<void> => {
   try {
     const { name, slug, description, default_webhook_url, allowed_ips, environment } = req.body;
     if (!name || !slug) { res.status(400).json({ error: "name and slug are required" }); return; }
@@ -47,7 +48,7 @@ router.post("/", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id", async (req, res): Promise<void> => {
+router.get("/:id", requireSession, async (req, res): Promise<void> => {
   try {
     const [system] = await db.select().from(integratedSystemsTable).where(eq(integratedSystemsTable.id, req.params.id));
     if (!system) { res.status(404).json({ error: "System not found" }); return; }
@@ -58,7 +59,7 @@ router.get("/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/:id", async (req, res): Promise<void> => {
+router.patch("/:id", requireSession, async (req, res): Promise<void> => {
   try {
     const { name, description, status, default_webhook_url, allowed_ips, environment } = req.body;
     const [updated] = await db

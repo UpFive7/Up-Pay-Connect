@@ -2,10 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { paymentsTable, webhookDeliveriesTable, subscriptionsTable } from "@workspace/db";
 import { sql, eq, gte, and } from "drizzle-orm";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
-router.get("/summary", async (req, res): Promise<void> => {
+router.get("/summary", requireSession, async (req, res): Promise<void> => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -67,7 +68,7 @@ router.get("/summary", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/payment-methods", async (req, res): Promise<void> => {
+router.get("/payment-methods", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select({
@@ -85,7 +86,7 @@ router.get("/payment-methods", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/providers", async (req, res): Promise<void> => {
+router.get("/providers", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select({
@@ -103,7 +104,7 @@ router.get("/providers", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/systems", async (req, res): Promise<void> => {
+router.get("/systems", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select({
@@ -121,7 +122,7 @@ router.get("/systems", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/recent-transactions", async (req, res): Promise<void> => {
+router.get("/recent-transactions", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select()
@@ -136,7 +137,7 @@ router.get("/recent-transactions", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/daily-volume", async (req, res): Promise<void> => {
+router.get("/daily-volume", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db
       .select({

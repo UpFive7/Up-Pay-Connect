@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { providerAccountsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ function mapProvider(p: typeof providerAccountsTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db.select().from(providerAccountsTable).orderBy(sql`${providerAccountsTable.priority} asc`);
     res.json(rows.map(mapProvider));
@@ -28,7 +29,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/:id", async (req, res): Promise<void> => {
+router.patch("/:id", requireSession, async (req, res): Promise<void> => {
   try {
     const { status, priority, supported_methods } = req.body;
     const [updated] = await db

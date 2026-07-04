@@ -10,6 +10,7 @@ import {
   toAsaasBillingType,
   toAsaasBillingCycle,
 } from "../lib/asaas.js";
+import { requirePermission } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -32,7 +33,7 @@ function mapSub(s: typeof subscriptionsTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requirePermission("subscriptions:read"), async (req, res): Promise<void> => {
   try {
     const { status, source_system, limit = "20", offset = "0" } = req.query as Record<string, string>;
     const lim = Math.min(Number(limit) || 20, 100);
@@ -55,7 +56,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requirePermission("subscriptions:write"), async (req, res): Promise<void> => {
   try {
     const { customer_id, amount, payment_method, billing_cycle, description, source_system, external_reference, next_due_date } = req.body;
     if (!customer_id || !amount || !payment_method || !billing_cycle || !source_system) {
@@ -131,7 +132,7 @@ router.post("/", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id", async (req, res): Promise<void> => {
+router.get("/:id", requirePermission("subscriptions:read"), async (req, res): Promise<void> => {
   try {
     const [sub] = await db.select().from(subscriptionsTable).where(eq(subscriptionsTable.id, req.params.id));
     if (!sub) { res.status(404).json({ error: "Subscription not found" }); return; }
@@ -142,7 +143,7 @@ router.get("/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/:id/cancel", async (req, res): Promise<void> => {
+router.post("/:id/cancel", requirePermission("subscriptions:write"), async (req, res): Promise<void> => {
   try {
     const [existing] = await db.select().from(subscriptionsTable).where(eq(subscriptionsTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Subscription not found" }); return; }

@@ -4,6 +4,7 @@ import { webhookDeliveriesTable, paymentsTable, paymentEventsTable } from "@work
 import { eq, sql, and } from "drizzle-orm";
 import { registerWebhook, getWebhookConfig, AsaasError } from "../lib/asaas.js";
 import { enqueueOutboundWebhook } from "../lib/webhook-delivery.js";
+import { requirePermission, requireSession } from "../middlewares/apiKeyAuth.js";
 import crypto from "crypto";
 
 const router = Router();
@@ -156,9 +157,7 @@ router.post("/asaas", async (req, res): Promise<void> => {
 
 // ─── Setup: register webhook URL in Asaas ────────────────────────────────────
 
-router.post("/asaas/setup", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
-
+router.post("/asaas/setup", requireSession, async (req, res): Promise<void> => {
   try {
     const publicUrl = getPublicUrl();
     const webhookUrl = `${publicUrl}/api/v1/webhooks/asaas`;
@@ -197,9 +196,7 @@ router.post("/asaas/setup", async (req, res): Promise<void> => {
 
 // ─── Status: get current webhook config from Asaas ───────────────────────────
 
-router.get("/asaas/status", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
-
+router.get("/asaas/status", requireSession, async (req, res): Promise<void> => {
   try {
     const config = await getWebhookConfig();
     const publicUrl = getPublicUrl();
@@ -219,7 +216,7 @@ router.get("/asaas/status", async (req, res): Promise<void> => {
 
 // ─── List deliveries ──────────────────────────────────────────────────────────
 
-router.get("/deliveries", async (req, res): Promise<void> => {
+router.get("/deliveries", requirePermission("webhooks:read"), async (req, res): Promise<void> => {
   try {
     const { status, source_system_id, limit = "20", offset = "0" } = req.query as Record<string, string>;
     const lim = Math.min(Number(limit) || 20, 100);
@@ -242,7 +239,7 @@ router.get("/deliveries", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/deliveries/:id/resend", async (req, res): Promise<void> => {
+router.post("/deliveries/:id/resend", requireSession, async (req, res): Promise<void> => {
   try {
     const [existing] = await db.select().from(webhookDeliveriesTable).where(eq(webhookDeliveriesTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Delivery not found" }); return; }
@@ -260,7 +257,7 @@ router.post("/deliveries/:id/resend", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/stats", async (req, res): Promise<void> => {
+router.get("/stats", requireSession, async (req, res): Promise<void> => {
   try {
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(webhookDeliveriesTable);
     const [success] = await db.select({ count: sql<number>`count(*)` }).from(webhookDeliveriesTable).where(eq(webhookDeliveriesTable.status, "success"));

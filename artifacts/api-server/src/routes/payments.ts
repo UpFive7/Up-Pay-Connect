@@ -16,6 +16,7 @@ import {
 } from "../lib/asaas.js";
 import { syncPendingAsaasPayments } from "../lib/asaas-sync.js";
 import { enqueueOutboundWebhook } from "../lib/webhook-delivery.js";
+import { requirePermission, requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -52,7 +53,7 @@ async function ensureAsaasCustomer(customerId: string): Promise<string> {
   return asaasCustomer.id;
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requirePermission("payments:read"), async (req, res): Promise<void> => {
   try {
     const { status, provider, payment_method, source_system, limit = "20", offset = "0" } = req.query as Record<string, string>;
 
@@ -78,7 +79,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requirePermission("payments:write"), async (req, res): Promise<void> => {
   try {
     const {
       amount, currency, payment_method, description,
@@ -238,9 +239,7 @@ router.post("/", async (req, res): Promise<void> => {
 
 // ─── Manual sync trigger ──────────────────────────────────────────────────────
 
-router.post("/sync", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
-
+router.post("/sync", requireSession, async (req, res): Promise<void> => {
   try {
     const olderThan = Number(req.query.older_than_minutes) || 0;
     const result = await syncPendingAsaasPayments(olderThan, 100);
@@ -251,7 +250,7 @@ router.post("/sync", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id", async (req, res): Promise<void> => {
+router.get("/:id", requirePermission("payments:read"), async (req, res): Promise<void> => {
   try {
     const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, req.params.id));
     if (!payment) { res.status(404).json({ error: "Payment not found" }); return; }
@@ -262,7 +261,7 @@ router.get("/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/:id/cancel", async (req, res): Promise<void> => {
+router.post("/:id/cancel", requirePermission("payments:write"), async (req, res): Promise<void> => {
   try {
     const [existing] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Payment not found" }); return; }
@@ -308,7 +307,7 @@ router.post("/:id/cancel", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/:id/refund", async (req, res): Promise<void> => {
+router.post("/:id/refund", requirePermission("payments:write"), async (req, res): Promise<void> => {
   try {
     const [existing] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, req.params.id));
     if (!existing) { res.status(404).json({ error: "Payment not found" }); return; }
@@ -358,7 +357,7 @@ router.post("/:id/refund", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/:id/events", async (req, res): Promise<void> => {
+router.get("/:id/events", requirePermission("payments:read"), async (req, res): Promise<void> => {
   try {
     const events = await db
       .select()

@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { authMiddleware } from "./middlewares/authMiddleware.js";
+import { apiKeyAuth } from "./middlewares/apiKeyAuth.js";
 import { logger } from "./lib/logger.js";
 
 const app: Express = express();
@@ -32,6 +33,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(authMiddleware);
+app.use(apiKeyAuth);
 
 app.use("/api", router);
 

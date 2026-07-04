@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { providerFeesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ function mapFee(f: typeof providerFeesTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requireSession, async (req, res): Promise<void> => {
   try {
     const rows = await db.select().from(providerFeesTable).orderBy(sql`${providerFeesTable.createdAt} desc`);
     res.json(rows.map(mapFee));
@@ -30,7 +31,7 @@ router.get("/", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/", async (req, res): Promise<void> => {
+router.post("/", requireSession, async (req, res): Promise<void> => {
   try {
     const { provider, payment_method, fee_type, fixed_amount, percentage_rate, settlement_days } = req.body;
     if (!provider || !payment_method || !fee_type) {
@@ -50,7 +51,7 @@ router.post("/", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/:id", async (req, res): Promise<void> => {
+router.patch("/:id", requireSession, async (req, res): Promise<void> => {
   try {
     const { fixed_amount, percentage_rate, settlement_days, active } = req.body;
     const [updated] = await db

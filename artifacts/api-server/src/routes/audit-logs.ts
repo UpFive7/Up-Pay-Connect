@@ -2,10 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { auditLogsTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
+import { requireSession } from "../middlewares/apiKeyAuth.js";
 
 const router = Router();
 
-router.get("/", async (req, res): Promise<void> => {
+router.get("/", requireSession, async (req, res): Promise<void> => {
   try {
     const { action, entity, limit = "20", offset = "0" } = req.query as Record<string, string>;
     const lim = Math.min(Number(limit) || 20, 100);
