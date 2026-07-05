@@ -8,6 +8,7 @@
 
 export * from './apiKey';
 export * from './apiKeyInput';
+export * from './apiKeyRotateInput';
 export * from './apiKeyWithSecret';
 export * from './auditLog';
 export * from './auditLogList';

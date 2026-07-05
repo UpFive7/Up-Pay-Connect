@@ -36,7 +36,23 @@ export async function apiKeyAuth(req: Request, res: Response, next: NextFunction
     const hash = createHash("sha256").update(key).digest("hex");
     const [record] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.keyHash, hash));
 
-    if (!record || record.status !== "active") {
+    if (!record || record.status === "revoked") {
+      res.status(401).json({ error: "API key inválida ou revogada" });
+      return;
+    }
+
+    const isExpired = record.expiresAt !== null && record.expiresAt.getTime() <= Date.now();
+    if (isExpired) {
+      if (record.status !== "expired") {
+        db.update(apiKeysTable).set({ status: "expired" }).where(eq(apiKeysTable.id, record.id)).catch((err) => {
+          req.log.error({ err }, "Error marking API key as expired");
+        });
+      }
+      res.status(401).json({ error: "API key expirada" });
+      return;
+    }
+
+    if (record.status !== "active") {
       res.status(401).json({ error: "API key inválida ou revogada" });
       return;
     }
@@ -49,7 +65,9 @@ export async function apiKeyAuth(req: Request, res: Response, next: NextFunction
     };
 
     // Fire-and-forget last-used timestamp update
-    void db.update(apiKeysTable).set({ lastUsedAt: new Date() }).where(eq(apiKeysTable.id, record.id));
+    db.update(apiKeysTable).set({ lastUsedAt: new Date() }).where(eq(apiKeysTable.id, record.id)).catch((err) => {
+      req.log.error({ err }, "Error updating API key last_used_at");
+    });
 
     next();
   } catch (err) {

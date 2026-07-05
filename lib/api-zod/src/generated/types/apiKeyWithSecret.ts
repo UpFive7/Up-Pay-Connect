@@ -15,5 +15,7 @@ export interface ApiKeyWithSecret {
   environment: string;
   status: string;
   permissions?: string[];
+  /** @nullable */
+  expires_at?: string | null;
   created_at: string;
 }

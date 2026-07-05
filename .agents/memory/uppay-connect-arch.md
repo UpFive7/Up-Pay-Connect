@@ -32,3 +32,10 @@ The `replit-auth` skill template includes mobile token exchange routes that impo
 
 ## lib/replit-auth-web needs vite/client types
 Add `"types": ["vite/client"]` to `lib/replit-auth-web/tsconfig.json` and `vite: "catalog:"` to its `devDependencies`. Without this, `import.meta.env.BASE_URL` causes a TS2339 error during `typecheck:libs`.
+
+## drizzle-orm query builders are lazy — `void db.update(...)` never runs
+A bare `void db.update(table).set(...).where(...)` (no `await`, `.then()`, or `.catch()`) silently never executes the query — drizzle's `QueryPromise` only fires on `.then()`. TypeScript compiles it fine and no error is thrown anywhere.
+
+**Why:** Discovered while adding fire-and-forget side-effect updates (e.g. `lastUsedAt` tracking, auto-expiring API keys) in `apiKeyAuth.ts` — the DB rows never changed despite no errors in logs, since silence is the default failure mode.
+
+**How to apply:** For any "fire-and-forget" DB write, always attach `.catch((err) => log.error(...))` at minimum so the query actually executes and failures are visible. Never use `void db.<verb>(...)` alone.

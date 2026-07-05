@@ -6,11 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ApiKeyInput {
-  system_id: string;
-  name: string;
-  environment: string;
-  permissions?: string[];
+export interface ApiKeyRotateInput {
   /** @nullable */
   expires_at?: string | null;
 }

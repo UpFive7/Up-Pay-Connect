@@ -22,6 +22,7 @@ import type {
 import type {
   ApiKey,
   ApiKeyInput,
+  ApiKeyRotateInput,
   ApiKeyWithSecret,
   AuditLogList,
   AuthUserEnvelope,
@@ -2288,6 +2289,78 @@ export const useRevokeApiKey = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRevokeApiKeyMutationOptions(options));
+    }
+
+export const getRotateApiKeyUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/api-keys/${id}/rotate`
+}
+
+/**
+ * @summary Rotate an API key — revokes the current secret and issues a new one with the same name/permissions
+ */
+export const rotateApiKey = async (id: string,
+    apiKeyRotateInput?: ApiKeyRotateInput, options?: RequestInit): Promise<ApiKeyWithSecret> => {
+
+  return customFetch<ApiKeyWithSecret>(getRotateApiKeyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      apiKeyRotateInput,)
+  }
+);}
+
+
+
+
+export const getRotateApiKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateApiKey>>, TError,{id: string;data?: BodyType<ApiKeyRotateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateApiKey>>, TError,{id: string;data?: BodyType<ApiKeyRotateInput>}, TContext> => {
+
+const mutationKey = ['rotateApiKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateApiKey>>, {id: string;data?: BodyType<ApiKeyRotateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  rotateApiKey(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RotateApiKeyMutationResult = NonNullable<Awaited<ReturnType<typeof rotateApiKey>>>
+    export type RotateApiKeyMutationBody = BodyType<ApiKeyRotateInput> | undefined
+    export type RotateApiKeyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Rotate an API key — revokes the current secret and issues a new one with the same name/permissions
+ */
+export const useRotateApiKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateApiKey>>, TError,{id: string;data?: BodyType<ApiKeyRotateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rotateApiKey>>,
+        TError,
+        {id: string;data?: BodyType<ApiKeyRotateInput>},
+        TContext
+      > => {
+      return useMutation(getRotateApiKeyMutationOptions(options));
     }
 
 export const getListSubscriptionsUrl = (params?: ListSubscriptionsParams,) => {

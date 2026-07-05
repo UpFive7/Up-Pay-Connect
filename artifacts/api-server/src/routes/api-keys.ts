@@ -16,15 +16,17 @@ function generateApiKey(environment: string): { key: string; hash: string; prefi
 }
 
 function mapKey(k: typeof apiKeysTable.$inferSelect, includeSecret?: boolean, secretKey?: string) {
+  const isExpired = k.expiresAt !== null && k.expiresAt.getTime() <= Date.now();
   const base = {
     id: k.id,
     system_id: k.systemId,
     name: k.name,
     key_prefix: k.keyPrefix,
     environment: k.environment,
-    status: k.status,
+    status: isExpired && k.status === "active" ? "expired" : k.status,
     permissions: k.permissions,
     last_used_at: k.lastUsedAt?.toISOString() ?? null,
+    expires_at: k.expiresAt?.toISOString() ?? null,
     created_at: k.createdAt.toISOString(),
   };
   if (includeSecret && secretKey) {
@@ -47,16 +49,25 @@ router.get("/", requireSession, async (req, res): Promise<void> => {
 
 router.post("/", requireSession, async (req, res): Promise<void> => {
   try {
-    const { system_id, name, environment, permissions } = req.body;
+    const { system_id, name, environment, permissions, expires_at } = req.body;
     if (!system_id || !name || !environment) {
       res.status(400).json({ error: "system_id, name and environment are required" });
       return;
     }
 
+    let expiresAt: Date | null = null;
+    if (expires_at) {
+      expiresAt = new Date(expires_at);
+      if (Number.isNaN(expiresAt.getTime())) {
+        res.status(400).json({ error: "expires_at inválido" });
+        return;
+      }
+    }
+
     const { key, hash, prefix } = generateApiKey(environment);
     const [apiKey] = await db
       .insert(apiKeysTable)
-      .values({ systemId: system_id, name, keyHash: hash, keyPrefix: prefix, environment, permissions: permissions || [], status: "active" })
+      .values({ systemId: system_id, name, keyHash: hash, keyPrefix: prefix, environment, permissions: permissions || [], status: "active", expiresAt })
       .returning();
 
     res.status(201).json(mapKey(apiKey, true, key));
@@ -77,6 +88,36 @@ router.post("/:id/revoke", requireSession, async (req, res): Promise<void> => {
     res.json(mapKey(updated));
   } catch (err) {
     req.log.error({ err }, "Error revoking API key");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/rotate", requireSession, async (req, res): Promise<void> => {
+  try {
+    const { expires_at } = req.body ?? {};
+
+    const [existing] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, req.params.id));
+    if (!existing) { res.status(404).json({ error: "API key not found" }); return; }
+
+    let expiresAt: Date | null = existing.expiresAt;
+    if (expires_at !== undefined) {
+      expiresAt = expires_at ? new Date(expires_at) : null;
+      if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+        res.status(400).json({ error: "expires_at inválido" });
+        return;
+      }
+    }
+
+    const { key, hash, prefix } = generateApiKey(existing.environment);
+    const [rotated] = await db
+      .update(apiKeysTable)
+      .set({ keyHash: hash, keyPrefix: prefix, status: "active", expiresAt })
+      .where(eq(apiKeysTable.id, req.params.id))
+      .returning();
+
+    res.json(mapKey(rotated, true, key));
+  } catch (err) {
+    req.log.error({ err }, "Error rotating API key");
     res.status(500).json({ error: "Internal server error" });
   }
 });

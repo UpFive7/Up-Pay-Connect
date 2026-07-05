@@ -236,6 +236,8 @@ export interface ApiKey {
   permissions?: string[];
   /** @nullable */
   last_used_at?: string | null;
+  /** @nullable */
+  expires_at?: string | null;
   created_at: string;
 }
 
@@ -248,6 +250,8 @@ export interface ApiKeyWithSecret {
   environment: string;
   status: string;
   permissions?: string[];
+  /** @nullable */
+  expires_at?: string | null;
   created_at: string;
 }
 
@@ -256,6 +260,13 @@ export interface ApiKeyInput {
   name: string;
   environment: string;
   permissions?: string[];
+  /** @nullable */
+  expires_at?: string | null;
+}
+
+export interface ApiKeyRotateInput {
+  /** @nullable */
+  expires_at?: string | null;
 }
 
 export interface Subscription {

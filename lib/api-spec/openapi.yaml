@@ -587,6 +587,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiKey"
 
+  /v1/api-keys/{id}/rotate:
+    post:
+      operationId: rotateApiKey
+      tags: [api-keys]
+      summary: Rotate an API key — revokes the current secret and issues a new one with the same name/permissions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeyRotateInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyWithSecret"
+
   # ─── Subscriptions ───────────────────────────────────────────────────────────
 
   /v1/subscriptions:
@@ -1263,6 +1288,8 @@ components:
             type: string
         last_used_at:
           type: ["string", "null"]
+        expires_at:
+          type: ["string", "null"]
         created_at:
           type: string
 
@@ -1288,6 +1315,8 @@ components:
           type: array
           items:
             type: string
+        expires_at:
+          type: ["string", "null"]
         created_at:
           type: string
 
@@ -1305,6 +1334,14 @@ components:
           type: array
           items:
             type: string
+        expires_at:
+          type: ["string", "null"]
+
+    ApiKeyRotateInput:
+      type: object
+      properties:
+        expires_at:
+          type: ["string", "null"]
 
     # ─── Subscription ────────────────────────────────────────────────────────────
 

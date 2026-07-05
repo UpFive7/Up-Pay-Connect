@@ -12,6 +12,7 @@ export const apiKeysTable = pgTable("api_keys", {
   status: text("status").notNull().default("active"),
   permissions: text("permissions").array().notNull().default([]),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

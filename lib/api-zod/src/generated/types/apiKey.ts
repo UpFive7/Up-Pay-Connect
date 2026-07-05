@@ -16,5 +16,7 @@ export interface ApiKey {
   permissions?: string[];
   /** @nullable */
   last_used_at?: string | null;
+  /** @nullable */
+  expires_at?: string | null;
   created_at: string;
 }

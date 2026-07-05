@@ -637,6 +637,7 @@ export const ListApiKeysResponseItem = zod.object({
   "status": zod.string(),
   "permissions": zod.array(zod.string()).optional(),
   "last_used_at": zod.string().nullish(),
+  "expires_at": zod.string().nullish(),
   "created_at": zod.string()
 })
 export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
@@ -649,7 +650,8 @@ export const CreateApiKeyBody = zod.object({
   "system_id": zod.string(),
   "name": zod.string(),
   "environment": zod.string(),
-  "permissions": zod.array(zod.string()).optional()
+  "permissions": zod.array(zod.string()).optional(),
+  "expires_at": zod.string().nullish()
 })
 
 
@@ -669,6 +671,32 @@ export const RevokeApiKeyResponse = zod.object({
   "status": zod.string(),
   "permissions": zod.array(zod.string()).optional(),
   "last_used_at": zod.string().nullish(),
+  "expires_at": zod.string().nullish(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Rotate an API key — revokes the current secret and issues a new one with the same name/permissions
+ */
+export const RotateApiKeyParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RotateApiKeyBody = zod.object({
+  "expires_at": zod.string().nullish()
+})
+
+export const RotateApiKeyResponse = zod.object({
+  "id": zod.string(),
+  "system_id": zod.string(),
+  "name": zod.string(),
+  "key_prefix": zod.string().optional(),
+  "key": zod.string(),
+  "environment": zod.string(),
+  "status": zod.string(),
+  "permissions": zod.array(zod.string()).optional(),
+  "expires_at": zod.string().nullish(),
   "created_at": zod.string()
 })
 
