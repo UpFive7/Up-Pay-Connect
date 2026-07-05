@@ -65,7 +65,7 @@ Full-stack admin panel with:
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Always communicate with the user in Portuguese (pt-BR).
 
 ## Auth
 
