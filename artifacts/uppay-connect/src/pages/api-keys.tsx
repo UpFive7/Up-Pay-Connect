@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CreateApiKeyModal } from "@/components/create-api-key-modal";
+import { ExpiringKeysBanner } from "@/components/expiring-keys-banner";
 import { RefreshCw, Copy, Check, Clock } from "lucide-react";
 
 function statusBadge(status: string) {
@@ -96,6 +97,8 @@ export default function ApiKeys() {
         </div>
         <CreateApiKeyModal />
       </div>
+
+      <ExpiringKeysBanner />
 
       <Card>
         <CardContent className="pt-6">

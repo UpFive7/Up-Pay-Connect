@@ -25,6 +25,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { ExpiringKeysBanner } from "@/components/expiring-keys-banner";
 
 const COLORS = ['#FF6B2B', '#2563EB', '#10B981', '#F59E0B', '#8B5CF6'];
 
@@ -42,6 +43,8 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your payment infrastructure.</p>
       </div>
+
+      <ExpiringKeysBanner />
 
       {isLoadingSummary ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
