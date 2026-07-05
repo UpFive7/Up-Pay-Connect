@@ -4,6 +4,7 @@ import { apiKeysTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { requireSession } from "../middlewares/apiKeyAuth.js";
+import { recordAuditLog } from "../lib/auditLog.js";
 
 const router = Router();
 
@@ -70,6 +71,13 @@ router.post("/", requireSession, async (req, res): Promise<void> => {
       .values({ systemId: system_id, name, keyHash: hash, keyPrefix: prefix, environment, permissions: permissions || [], status: "active", expiresAt })
       .returning();
 
+    recordAuditLog(req, {
+      action: "api_key.created",
+      entity: "api_key",
+      entityId: apiKey.id,
+      newValue: { name: apiKey.name, system_id: apiKey.systemId, environment: apiKey.environment, permissions: apiKey.permissions, expires_at: apiKey.expiresAt?.toISOString() ?? null },
+    });
+
     res.status(201).json(mapKey(apiKey, true, key));
   } catch (err) {
     req.log.error({ err }, "Error creating API key");
@@ -79,12 +87,24 @@ router.post("/", requireSession, async (req, res): Promise<void> => {
 
 router.post("/:id/revoke", requireSession, async (req, res): Promise<void> => {
   try {
+    const [existing] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.id, req.params.id));
+    if (!existing) { res.status(404).json({ error: "API key not found" }); return; }
+
     const [updated] = await db
       .update(apiKeysTable)
       .set({ status: "revoked" })
       .where(eq(apiKeysTable.id, req.params.id))
       .returning();
     if (!updated) { res.status(404).json({ error: "API key not found" }); return; }
+
+    recordAuditLog(req, {
+      action: "api_key.revoked",
+      entity: "api_key",
+      entityId: updated.id,
+      oldValue: { status: existing.status },
+      newValue: { status: updated.status },
+    });
+
     res.json(mapKey(updated));
   } catch (err) {
     req.log.error({ err }, "Error revoking API key");
@@ -114,6 +134,14 @@ router.post("/:id/rotate", requireSession, async (req, res): Promise<void> => {
       .set({ keyHash: hash, keyPrefix: prefix, status: "active", expiresAt })
       .where(eq(apiKeysTable.id, req.params.id))
       .returning();
+
+    recordAuditLog(req, {
+      action: "api_key.rotated",
+      entity: "api_key",
+      entityId: rotated.id,
+      oldValue: { key_prefix: existing.keyPrefix, status: existing.status, expires_at: existing.expiresAt?.toISOString() ?? null },
+      newValue: { key_prefix: rotated.keyPrefix, status: rotated.status, expires_at: rotated.expiresAt?.toISOString() ?? null },
+    });
 
     res.json(mapKey(rotated, true, key));
   } catch (err) {
